@@ -1,0 +1,15 @@
+
+--- NEW SESSION: 12/02/2021 11:11:42 ---
+/DeformArmadillo1/solver.tolerance = 1e-09
+/DeformArmadillo1/solver.threshold = 1e-09
+
+--- NEW SESSION: 12/02/2021 11:25:45 ---
+/DeformArmadillo1/2.rayleighStiffness = 0.1
+/DeformArmadillo1/2.rayleighMass = 0.1
+
+--- NEW SESSION: 12/02/2021 11:26:55 ---
+/DeformArmadillo1/Surf/oglModel2.material = Default Diffuse 1 0.74902 0.74902 0.74902 1 Ambient 1 0.2 0.2 0.2 1 Specular 0 1 1 1 1 Emissive 0 0 0 0 0 Shininess 0 45 
+
+--- NEW SESSION: 12/02/2021 14:15:05 ---
+/DeformArmadillo2/solver.graph = Denominator 0.000405269 0.117811 0.00598965 0.00149577 0.000694816 0.000272598 4.75296e-05 2.88776e-05 1.72747e-05 3.25193e-06
+Error 1 1 2.40994 0.690175 0.376583 0.260767 0.151805 0.069079 0.0553039 0.0368056 0.0204639
