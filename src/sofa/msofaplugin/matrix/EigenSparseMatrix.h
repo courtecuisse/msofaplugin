@@ -188,7 +188,6 @@ public:
     }
 
     void buildMatrix() override {
-        TIMER_START(prepare);
         sofa::helper::AdvancedTimer::stepBegin("prepare");
 
         component::linearsolver::DefaultMultiMatrixAccessor accessorM;
@@ -214,20 +213,17 @@ public:
         m_K.resize(size,size);
         m_P.resize(size,size);
 
-        TIMER_NEXT(prepare,build);
         sofa::helper::AdvancedTimer::stepNext ("prepare", "build");
 
         BuildMVisitor(&accessorM).execute(this->getContext());
         BuildKVisitor(&accessorK).execute(this->getContext());
 
-        TIMER_NEXT(build,project);
         sofa::helper::AdvancedTimer::stepNext ("build", "project+compress");
 
         ProjectMatrixVisitor(&accessorM).execute(this->getContext());
         ProjectMatrixVisitor(&accessorK).execute(this->getContext());
         ProjectMatrixVisitor(&accessorP).execute(this->getContext());
 
-        TIMER_END(project);
         sofa::helper::AdvancedTimer::stepEnd("project+compress");
 
 //        TIMER_PRINT("Prepare=" << prepare << " ms    Build=" << build << " ms project=" << project << " ms  total=" << (prepare+build+project) << " ms");;
@@ -256,15 +252,9 @@ public:
 //    }
 
     virtual std::shared_ptr<CompressedMatrix<TReal>> getCompressedMatrix(const core::MechanicalParams * mparams) {
-        TIMER_START(fullCompress);
-
         m_compressed = m_M.compress()*mparams->mFactor() +
                        m_K.compress()*mparams->kFactor() +
                        m_P.compress();
-
-        TIMER_END(fullCompress);
-
-        TIMER_PRINT("fullCompress=" << fullCompress << " ms");
 
 //#if 1
 //    std::ofstream myfile;

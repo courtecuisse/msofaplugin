@@ -19,8 +19,13 @@ public:
     class MechanicalVectorId : public sofa::core::behavior::MultiVecDeriv {
         friend class BaseSystemMatrix;
     public:
+
         virtual ~MechanicalVectorId() {
             if (! dynamic) m_matrix->freeMVector(*this);
+            else {
+                vop->v_free(v);
+                dynamic = false; // no use of vop in the parent MultiVecDeriv !!!
+            }
             delete this->vop;
         }
 

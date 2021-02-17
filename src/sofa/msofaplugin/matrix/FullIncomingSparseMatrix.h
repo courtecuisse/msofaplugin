@@ -20,7 +20,7 @@
 namespace sofa::msofaplugin::matrix {
 
 template<class VecReal,class VecInt>
-class IncomingBaseMatrix : public defaulttype::BaseMatrix {
+class FullIncomingBaseMatrix : public defaulttype::BaseMatrix {
 public:
     typedef typename RealType<VecReal>::Real Real;
     typedef defaulttype::BaseMatrix::Index Index;
@@ -32,7 +32,7 @@ public:
         unsigned col;
     };
 
-    IncomingBaseMatrix() {
+    FullIncomingBaseMatrix() {
         m_keepStruct = false;
         m_compressed = false;
     }
@@ -334,10 +334,10 @@ private :
 };
 
 template<class Real, class VecReal, class VecInt>
-class InternalCompressed : public CompressedMatrix<Real> {
+class FullInternalCompressed : public CompressedMatrix<Real> {
 public:
 
-    InternalCompressed(const IncomingBaseMatrix<VecReal,VecInt> * matrix, double m, double k)
+    FullInternalCompressed(const FullIncomingBaseMatrix<VecReal,VecInt> * matrix, double m, double k)
     : m_matrix(matrix)
     , mfact(m), kfact(k), used(true) {}
 
@@ -361,7 +361,7 @@ public:
         return m_matrix->rowSize();
     }
 
-    const IncomingBaseMatrix<VecReal,VecInt> * m_matrix;
+    const FullIncomingBaseMatrix<VecReal,VecInt> * m_matrix;
     VecReal m_values;
     double mfact;
     double kfact;
@@ -369,13 +369,13 @@ public:
 };
 
 template<class VecReal,class VecInt>
-class BaseIncomingSparseMatrix : public CompressableMatrix<VecReal,VecInt> {
+class BaseFullIncomingSparseMatrix : public CompressableMatrix<VecReal,VecInt> {
 public:
 
     typedef typename CompressableMatrix<VecReal,VecInt>::Real Real;
-    typedef std::shared_ptr<InternalCompressed<Real, VecReal,VecInt>> FullCompressedMatrix;
+    typedef std::shared_ptr<FullInternalCompressed<Real, VecReal,VecInt>> FullCompressedMatrix;
 
-    SOFA_ABSTRACT_CLASS(SOFA_TEMPLATE2(BaseIncomingSparseMatrix,VecReal,VecInt),SOFA_TEMPLATE2(CompressableMatrix, VecReal,VecInt) );
+    SOFA_ABSTRACT_CLASS(SOFA_TEMPLATE2(BaseFullIncomingSparseMatrix,VecReal,VecInt),SOFA_TEMPLATE2(CompressableMatrix, VecReal,VecInt) );
 
     virtual void clear() {
         m_matrix.clear();
@@ -388,7 +388,6 @@ public:
 
     void buildMatrix() override {
         sofa::helper::AdvancedTimer::stepBegin("prepare");
-        TIMER_START(prepare);
 
         component::linearsolver::DefaultMultiMatrixAccessor accessor;
         accessor.setGlobalMatrix(&m_matrix);
@@ -401,7 +400,6 @@ public:
         m_matrix.resize(size,size);
 
         sofa::helper::AdvancedTimer::stepNext ("prepare", "collect");
-        TIMER_NEXT(prepare,build);
 
         BuildKVisitor(&accessor).execute(this->getContext());
         m_kid = m_matrix.getWriteId();
@@ -409,12 +407,10 @@ public:
         m_mid = m_matrix.getWriteId();
 
         sofa::helper::AdvancedTimer::stepNext ("collect", "project");
-        TIMER_NEXT(build,project);
 
         ProjectMatrixVisitor(&accessor).execute(this->getContext());
 
         sofa::helper::AdvancedTimer::stepNext ("project", "pattern");
-        TIMER_NEXT(project,pattern);
 
         m_matrix.rebuildPatternAccess();
         sofa::helper::AdvancedTimer::stepNext ("pattern", "compress");
@@ -422,9 +418,6 @@ public:
         compress();
 
         sofa::helper::AdvancedTimer::stepEnd("compress");
-        TIMER_END(pattern);
-
-//        TIMER_PRINT("Prepare=" << prepare << " ms    Build=" << build << " ms project=" << project << " ms pattern=" << pattern << " ms  total=" << (prepare+build+project+pattern) << " ms");;
     }
 
     std::shared_ptr<CompressedMatrix<Real>> getCompressedMatrix(const core::MechanicalParams * mparams) {
@@ -447,7 +440,7 @@ public:
     }
 
 protected:
-    IncomingBaseMatrix<VecReal,VecInt> m_matrix;
+    FullIncomingBaseMatrix<VecReal,VecInt> m_matrix;
     unsigned m_mid,m_kid; // last index of mass and stiffness contributions
     mutable std::vector<FullCompressedMatrix> m_compressedValues; // memorize parameter in order to group compression step
     mutable std::vector<unsigned> m_toCompress;    
@@ -462,7 +455,7 @@ protected:
         }
 
         unsigned id = m_compressedValues.size();
-        m_compressedValues.push_back(FullCompressedMatrix(new InternalCompressed<Real, VecReal,VecInt>(&m_matrix, mparams->mFactor(), mparams->kFactor())));
+        m_compressedValues.push_back(FullCompressedMatrix(new FullInternalCompressed<Real, VecReal,VecInt>(&m_matrix, mparams->mFactor(), mparams->kFactor())));
         m_toCompress.push_back(id);
         compress();
         return id;
@@ -473,14 +466,20 @@ protected:
 };
 
 template<class TReal>
-class IncomingSparseMatrix : public BaseIncomingSparseMatrix<helper::vector<TReal>, helper::vector<int>> {
+class FullIncomingSparseMatrix : public BaseFullIncomingSparseMatrix<helper::vector<TReal>, helper::vector<int>> {
 public:
+
 
     typedef TReal Real;
     typedef helper::vector<TReal> VecReal;
     typedef helper::vector<int> VecInt;
 
-    SOFA_CLASS(SOFA_TEMPLATE(IncomingSparseMatrix,TReal),SOFA_TEMPLATE2(BaseIncomingSparseMatrix, VecReal, VecInt));
+    SOFA_CLASS(SOFA_TEMPLATE(FullIncomingSparseMatrix,TReal),SOFA_TEMPLATE2(BaseFullIncomingSparseMatrix, VecReal, VecInt));
+
+    Data<int> d_thread;
+
+    FullIncomingSparseMatrix()
+    : d_thread(initData(&d_thread, 4,"thread","Number of threads")) {}
 
     inline void compress() const override {
         if (this->m_toCompress.empty()) return;
@@ -511,8 +510,7 @@ public:
         };
 
         int start = 0;
-        int NBTHREAD = atoi(getenv("MSOFA_THREADS"));
-        if (NBTHREAD<1) NBTHREAD=1;
+        int NBTHREAD = d_thread.getValue();
         int NBLOCS=(nnz+NBTHREAD)/NBTHREAD;
         std::vector<std::thread> threads;
         threads.resize(NBTHREAD);
@@ -550,8 +548,7 @@ public:
         };
 
         const int size = this->m_matrix.rowSize();
-        int NBTHREAD = atoi(getenv("MSOFA_THREADS"));
-        if (NBTHREAD<1) NBTHREAD=1;
+        int NBTHREAD = d_thread.getValue();
         int NBLOCS=(size+NBTHREAD-1)/NBTHREAD;
         int start = 0;
         std::vector<std::thread> threads(NBTHREAD);

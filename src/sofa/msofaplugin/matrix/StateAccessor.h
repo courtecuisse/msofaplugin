@@ -1,33 +1,11 @@
 #pragma once
 
 #include <sofa/msofaplugin/matrix/MechanicalVector.h>
-#include <sofa/msofaplugin/matrix/StateSynchronizer.h>
 
 namespace sofa::msofaplugin::matrix {
 
-class GenericStateVectorOperator : public BaseStateVectorOperator {
-public:
-
-    SOFA_CLASS(GenericStateVectorOperator,BaseStateVectorOperator);
-
-    GenericStateVectorOperator(core::behavior::BaseMechanicalState * s) : m_state(s) {
-        m_state->addSlave(this);
-    }
-
-    virtual core::behavior::BaseMechanicalState * getState() override {
-        return m_state;
-    }
-
-    virtual unsigned getGlobalDim() const override {
-        return m_state->getSize() * m_state->getDerivDimension();
-    }
-
-private:
-    core::behavior::BaseMechanicalState * m_state;
-};
-
 template<class DataTypes>
-class StateVectorOperator : public BaseStateVectorOperator, public StateVectorAccessor<typename DataTypes::VecReal> {
+class StateAccessor : public TStateAccessor<typename DataTypes::VecReal> {
 public:
 
     typedef typename DataTypes::Real Real;
@@ -36,7 +14,7 @@ public:
     typedef typename DataTypes::VecReal VecReal;
     typedef Data<VecDeriv> DataVecDeriv;
 
-    SOFA_CLASS(SOFA_TEMPLATE(StateVectorOperator,DataTypes),BaseStateVectorOperator);
+    SOFA_CLASS(SOFA_TEMPLATE(StateAccessor,DataTypes),SOFA_TEMPLATE(TStateAccessor,VecReal));
 
     /// Pre-construction check method called by ObjectFactory.
     /// Check that DataTypes matches the MechanicalState.
@@ -53,15 +31,26 @@ public:
         return sofa::core::objectmodel::BaseObject::canCreate(obj, context, arg);
     }
 
+    /// Construction method called by ObjectFactory.
+    template<class T>
+    static typename T::SPtr create(T*, core::objectmodel::BaseContext* context, core::objectmodel::BaseObjectDescription* arg)
+    {
+        typename T::SPtr obj = sofa::core::objectmodel::New<T>();
+        if (context) context->addObject(obj);
+        if (arg) obj->parse(arg);
+        return obj;
+    }
+
+
     virtual std::string getTemplateName() const override {
         return templateName(this);
     }
 
-    static std::string templateName(const StateVectorOperator<DataTypes>* = NULL) {
+    static std::string templateName(const StateAccessor<DataTypes>* = NULL) {
         return DataTypes::Name();
     }
 
-    StateVectorOperator()
+    StateAccessor()
     : l_state(initLink("mstate", "MechanicalState used by this vector")) {}
 
     void parse ( core::objectmodel::BaseObjectDescription* arg ) override {
@@ -90,7 +79,7 @@ public:
     }
 
 protected:
-    sofa::core::objectmodel::SingleLink<StateVectorOperator<DataTypes>,sofa::core::behavior::MechanicalState<DataTypes>,BaseLink::FLAG_STRONGLINK> l_state;
+    sofa::core::objectmodel::SingleLink<StateAccessor<DataTypes>,sofa::core::behavior::MechanicalState<DataTypes>,BaseLink::FLAG_STRONGLINK> l_state;
 
 };
 

@@ -2,9 +2,6 @@
 
 #include <sofa/msofaplugin/matrix/MechanicalVector.h>
 #include <sofa/msofaplugin/matrix/BaseSystemMatrix.h>
-#include <sofa/msofaplugin/matrix/StateSynchronizer.h>
-#include <sofa/msofaplugin/matrix/StateVectorOperator.h>
-#include <sofa/core/ObjectFactory.h>
 
 namespace sofa::msofaplugin::matrix {
 
@@ -55,7 +52,7 @@ public:
         m_globalSize = 0;
         m_vectorOperations.clear();
         for (unsigned i=0;i<states.size();i++) {
-            m_vectorOperations.push_back(createVectorOperations(states[i]));
+            m_vectorOperations.push_back(TStateAccessor<VecReal>::create(states[i]));
             m_globalSize += states[i]->getSize() * states[i]->getDerivDimension();
         }
 
@@ -134,7 +131,7 @@ public:
         if (m_mechanicalVectors[index] != NULL) return m_mechanicalVectors[index];
 
         if (m_vectorOperations.size() == 1) {
-            if (auto vecAcc = dynamic_cast<StateVectorAccessor<VecReal> *>(m_vectorOperations.front().get())) {
+            if (auto vecAcc = core::objectmodel::SPtr_dynamic_cast<TStateAccessor<VecReal>>(m_vectorOperations.front())) {
                 m_mechanicalVectors[index] = typename MechanicalVector<VecReal>::SPtr(new RawMechanicalVector<VecReal>(index,vecAcc));
                 return m_mechanicalVectors[index];
             }
@@ -145,43 +142,12 @@ public:
         return m_mechanicalVectors[index];
     }
 
-//    virtual void print(std::ostream& out, const MechanicalVectorId & v) const override {
-//        out << *(getMechanicalVector(v)->read());
-//    }
-
-//    virtual std::string getTemplateName() const override {
-//        return MatrixType<VecReal,VecInt>::name();
-//    }
-
-//    static std::string templateName(const CompressableMatrix<TVecReal,TVecInt>* = NULL) {
-//        return MatrixType<VecReal,VecInt>::name();
-//    }
-
 protected:
     mutable std::vector<typename MechanicalVector<VecReal>::SPtr> m_mechanicalVectors;
-    std::vector<BaseStateVectorOperator::SPtr> m_vectorOperations;
+    std::vector<BaseStateAccessor::SPtr> m_vectorOperations;
     unsigned m_globalSize;
 
-    BaseStateVectorOperator::SPtr createVectorOperations(core::behavior::BaseMechanicalState * state) {
-        auto slaves = state->getSlaves();
 
-        for (unsigned i=0;i<slaves.size();i++) {
-            if (BaseStateVectorOperator::SPtr vector = sofa::core::objectmodel::SPtr_dynamic_cast<BaseStateVectorOperator>(slaves[i])) return vector;
-        }
-
-        sofa::core::objectmodel::BaseObjectDescription arg;
-        arg.setAttribute("type",std::string("StateVectorOperator"));
-        arg.setAttribute("template",state->getTemplateName());
-        arg.setAttribute("name",state->getName() + "_MV");
-        arg.setAttribute("mstate",std::string("@")+state->getPathName());
-
-        sofa::core::objectmodel::BaseObject::SPtr obj = sofa::core::ObjectFactory::getInstance()->createObject(state->getContext(), &arg);
-        BaseStateVectorOperator::SPtr vector = sofa::core::objectmodel::SPtr_dynamic_cast<BaseStateVectorOperator>(obj);
-        if (vector != NULL) return vector;
-
-        //TODO::
-        return sofa::core::objectmodel::New<GenericStateVectorOperator>(state);
-    }
 };
 
 }

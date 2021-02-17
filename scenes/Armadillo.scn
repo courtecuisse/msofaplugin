@@ -17,9 +17,10 @@
 	</Node>
 	
 	<Node name="DeformArmadillo1">
-        <MEulerImplicitSolver solver="@solver" />
-		<MUnbuiltMatrix name="matrix" />
-		<MCGLinearSolver name="solver" matrix="@matrix" iterations="100" />
+                <EulerImplicitSolver solver="@solver" />
+                <!--<MUnbuiltMatrix name="matrix" />-->
+                <FullIncomingSparseMatrix name="matrix" />
+                <MPCGLinearSolver name="solver" matrix="@matrix" iterations="100" />
 
 		<TetrahedronSetTopologyContainer name="Container" position="@../RegularGrid/HexaTop.position" tetrahedra="@../RegularGrid/TetraContainer.tetrahedra" />
 		<TetrahedronSetTopologyModifier name="Modifier"/>
