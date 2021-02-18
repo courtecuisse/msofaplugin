@@ -52,15 +52,15 @@ public:
         GetMechanicalStateVisitor(states).execute(getContext());
 
         m_globalSize = 0;
-        m_vectorOperations.clear();
+        m_stateAccessor.clear();
         for (unsigned i=0;i<states.size();i++) {
-            m_vectorOperations.push_back(TStateAccessor<VecReal>::create(states[i]));
+            m_stateAccessor.push_back(TStateAccessor<VecReal>::create(states[i]));
             m_globalSize += states[i]->getSize() * states[i]->getDerivDimension();
         }
 
         for (unsigned i=0;i<m_mechanicalVectors.size();i++) {
             if (m_mechanicalVectors[i] != NULL)
-                m_mechanicalVectors[i]->update(m_vectorOperations);
+                m_mechanicalVectors[i]->update(m_stateAccessor);
         }
     }
 
@@ -125,28 +125,28 @@ public:
     }
 
     typename MechanicalVector<VecReal>::SPtr getMechanicalVector(const BaseSystemMatrix::MechanicalVectorId & id) const {
-        auto vid = id.id().getId(m_vectorOperations[0]->getState());
+        auto vid = id.id().getId(m_stateAccessor[0]->getState());
         unsigned index = vid.getIndex();
 
         if (index >= m_mechanicalVectors.size()) m_mechanicalVectors.resize(index+1);
 
         if (m_mechanicalVectors[index] != NULL) return m_mechanicalVectors[index];
 
-        if (m_vectorOperations.size() == 1) {
-            if (auto vecAcc = core::objectmodel::SPtr_dynamic_cast<TStateAccessor<VecReal>>(m_vectorOperations.front())) {
+        if (m_stateAccessor.size() == 1) {
+            if (auto vecAcc = core::objectmodel::SPtr_dynamic_cast<TStateAccessor<VecReal>>(m_stateAccessor.front())) {
                 m_mechanicalVectors[index] = typename MechanicalVector<VecReal>::SPtr(new RawMechanicalVector<VecReal>(index,vecAcc));
                 return m_mechanicalVectors[index];
             }
         }
 
-//        m_mechanicalVectors[vid] = typename MechanicalVector<VecReal>::SPtr(new GenericSynchronizer<VecReal>(id,m_vectorOperations));
-        m_mechanicalVectors[index] = typename MechanicalVector<VecReal>::SPtr(new SyncMechanicalVector<VecReal>(index,m_vectorOperations));
+//        m_mechanicalVectors[vid] = typename MechanicalVector<VecReal>::SPtr(new GenericSynchronizer<VecReal>(id,m_stateAccessor));
+        m_mechanicalVectors[index] = typename MechanicalVector<VecReal>::SPtr(new SyncMechanicalVector<VecReal>(index,m_stateAccessor));
         return m_mechanicalVectors[index];
     }
 
 protected:
     mutable std::vector<typename MechanicalVector<VecReal>::SPtr> m_mechanicalVectors;
-    std::vector<BaseStateAccessor::SPtr> m_vectorOperations;
+    std::vector<BaseStateAccessor::SPtr> m_stateAccessor;
     unsigned m_globalSize;
 
 

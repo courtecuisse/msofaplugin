@@ -57,16 +57,18 @@ public:
     }
 
     void buildMatrix() override {
-        sofa::helper::AdvancedTimer::stepNext ("prepare", "collect");
+        LocalMIncomingSparseMatrix<VecReal,VecInt>::doCreateVisitor(m_matrices,this->getContext());
+        LocalKIncomingSparseMatrix<VecReal,VecInt>::doCreateVisitor(k_matrices,this->getContext());
 
-        std::vector<typename LocalIncomingSparseMatrix<M_MATRIX,VecReal,VecInt>::SPtr> m_matrices;
-        typename LocalIncomingSparseMatrix<M_MATRIX,VecReal,VecInt>::BuildLocalVisitor(m_matrices).execute(this->getContext());
+        for (unsigned i=0;i<m_matrices.size();i++) {
+            m_matrices[i]->resize(this->m_globalSize,this->m_globalSize);
+            m_matrices[i]->buildMatrix(this->m_stateAccessor);
+        }
 
-        std::vector<typename LocalIncomingSparseMatrix<B_MATRIX,VecReal,VecInt>::SPtr> b_matrices;
-        typename LocalIncomingSparseMatrix<B_MATRIX,VecReal,VecInt>::BuildLocalVisitor(b_matrices).execute(this->getContext());
-
-        std::vector<typename LocalIncomingSparseMatrix<K_MATRIX,VecReal,VecInt>::SPtr> k_matrices;
-        typename LocalIncomingSparseMatrix<K_MATRIX,VecReal,VecInt>::BuildLocalVisitor(k_matrices).execute(this->getContext());
+        for (unsigned i=0;i<k_matrices.size();i++) {
+            m_matrices[i]->resize(this->m_globalSize,this->m_globalSize);
+            k_matrices[i]->buildMatrix(this->m_stateAccessor);
+        }
 
 //        sofa::helper::AdvancedTimer::stepNext ("collect", "project");
 
@@ -97,7 +99,8 @@ public:
 
 protected:
     unsigned m_rowSize,m_colSize;
-
+    std::vector<typename LocalMIncomingSparseMatrix<VecReal,VecInt>::SPtr> m_matrices;
+    std::vector<typename LocalKIncomingSparseMatrix<VecReal,VecInt>::SPtr> k_matrices;
 };
 
 template<class TReal>
@@ -159,6 +162,8 @@ public:
     }
 */
     void mult(core::MechanicalParams * mparams, BaseSystemMatrix::MechanicalVectorId & x, const BaseSystemMatrix::MechanicalVectorId & b, bool acc) override {
+
+        std::cout << "MULT " << std::endl;
         /*
 //        TIMER_START(Mult);
         unsigned id = this->addParams(mparams);

@@ -13,7 +13,7 @@
 #include <fstream>
 #include <thread>
 #include <stdlib.h>
-
+#include <sofa/core/ObjectFactory.h>
 #include <sofa/helper/AdvancedTimer.h>
 
 namespace sofa::msofaplugin::matrix {
@@ -302,79 +302,18 @@ private :
     mutable helper::vector<int> m_clearCols,m_clearRows,m_setValId;
 };
 
-typedef enum {
-    M_MATRIX,
-    B_MATRIX,
-    K_MATRIX
-} MATRIX_TYPE;
-
-template<MATRIX_TYPE MTYPE>
-core::MechanicalParams getParams();
-
-template<>
-core::MechanicalParams getParams<M_MATRIX>() {
-    core::MechanicalParams res;
-    res.setMFactor(1.0);res.setBFactor(0.0);res.setKFactor(0.0);
-    return res;
-}
-
-template<>
-core::MechanicalParams getParams<B_MATRIX>() {
-    core::MechanicalParams res;
-    res.setMFactor(0.0);res.setBFactor(1.0);res.setKFactor(0.0);
-    return res;
-}
-
-template<>
-core::MechanicalParams getParams<K_MATRIX>() {
-    core::MechanicalParams res;
-    res.setMFactor(0.0);res.setBFactor(0.0);res.setKFactor(1.0);
-    return res;
-}
-
-template<MATRIX_TYPE MTYPE, class VecReal, class VecInt>
-class LocalIncomingSparseMatrix : public sofa::core::objectmodel::BaseObject {
+template<class VecReal, class VecInt>
+class BaseLocalIncomingSparseMatrix : public sofa::core::objectmodel::BaseObject {
 public:
 
-    SOFA_CLASS(SOFA_TEMPLATE3(LocalIncomingSparseMatrix,MTYPE,VecReal,VecInt),sofa::core::objectmodel::BaseObject);
+    SOFA_CLASS(SOFA_TEMPLATE2(BaseLocalIncomingSparseMatrix,VecReal,VecInt),sofa::core::objectmodel::BaseObject);
 
-    class BuildLocalVisitor : public simulation::MechanicalVisitor {
-    public:
+    void resize(unsigned r,unsigned c) {
+        m_rowSize = r;
+        m_colSize = r;
+    }
 
-        BuildLocalVisitor(std::vector<LocalIncomingSparseMatrix<MTYPE,VecReal,VecInt>::SPtr> & locals)
-        : simulation::MechanicalVisitor(core::MechanicalParams::defaultInstance())
-        , m_locals(locals) {
-            m_locals.clear();
-        }
-
-        const char* getClassName() const override { return "BuildLocalMVisitor"; }
-
-        Result fwdForceField(simulation::Node* /*node*/, core::behavior::BaseForceField* ff) override {
-            if (dynamic_cast<core::behavior::BaseMass*>(ff)) return RESULT_CONTINUE;
-
-            auto slaves = ff->getSlaves();
-
-            for (unsigned i=0;i<slaves.size();i++) {
-                if (typename LocalIncomingSparseMatrix<MTYPE,VecReal,VecInt>::SPtr local = sofa::core::objectmodel::SPtr_dynamic_cast<LocalIncomingSparseMatrix<MTYPE,VecReal,VecInt>>(slaves[i])) {
-                    m_locals.push_back(local);
-                    return RESULT_CONTINUE;
-                }
-            }
-
-            LocalIncomingSparseMatrix<MTYPE,VecReal,VecInt>::SPtr local = core::objectmodel::New<LocalIncomingSparseMatrix<MTYPE,VecReal,VecInt>>(ff);
-
-            return RESULT_CONTINUE;
-        }
-
-        bool stopAtMechanicalMapping(simulation::Node* /*node*/, core::BaseMapping* map) override {
-            return !map->areMatricesMapped();
-        }
-
-    private:
-        std::vector<LocalIncomingSparseMatrix<MTYPE,VecReal,VecInt>::SPtr>  & m_locals;
-    };
-
-    void buildMatrix(const std::vector<BaseStateAccessor::SPtr> & vacc) {
+    void buildMatrix(std::vector<BaseStateAccessor::SPtr> & vacc) {
         component::linearsolver::DefaultMultiMatrixAccessor accessor;
         accessor.setGlobalMatrix(&m_buildingMatrix);
         accessor.setupMatrices();
@@ -382,20 +321,192 @@ public:
         for (unsigned i=0;i<vacc.size();i++)
             accessor.addMechanicalState(vacc[i]->getState());
 
+        doBuild(&accessor);
 
+        m_buildingMatrix.rebuildPatternAccess();
     }
 
 protected:
-    LocalIncomingSparseMatrix(core::behavior::BaseForceField * ff)
-    : m_ff(ff)
-    , m_buildingMatrix(m_rowSize,m_colSize) {
-        m_ff->addSlave(this);
-    }
+    BaseLocalIncomingSparseMatrix()
+    : m_buildingMatrix(m_rowSize,m_colSize) {}
 
+    virtual void doBuild(component::linearsolver::DefaultMultiMatrixAccessor * accessor) = 0;
+
+    core::MechanicalParams m_params;
     unsigned m_rowSize,m_colSize;
     BuildingIncomingMatrix<VecReal,VecInt> m_buildingMatrix;
+};
+
+template<class VecReal, class VecInt>
+class LocalKIncomingSparseMatrix : public BaseLocalIncomingSparseMatrix<VecReal,VecInt> {
+public:
+
+    SOFA_CLASS(SOFA_TEMPLATE2(LocalKIncomingSparseMatrix,VecReal,VecInt),SOFA_TEMPLATE2(BaseLocalIncomingSparseMatrix,VecReal,VecInt));
+
+    static void doCreateVisitor(std::vector<typename LocalKIncomingSparseMatrix::SPtr> & locals, core::objectmodel::BaseContext * ctx) {
+        class BuildKLocalVisitor : public simulation::MechanicalVisitor {
+        public:
+
+            BuildKLocalVisitor(std::vector<typename LocalKIncomingSparseMatrix::SPtr> & locals)
+            : simulation::MechanicalVisitor(core::MechanicalParams::defaultInstance())
+            , m_locals(locals) {}
+
+            const char* getClassName() const override { return "BuildLocalKVisitor"; }
+
+            Result fwdForceField(simulation::Node* /*node*/, core::behavior::BaseForceField* ff) override {
+                if (dynamic_cast<core::behavior::BaseMass*>(ff)) return RESULT_CONTINUE;
+
+                auto slaves = ff->getSlaves();
+
+                for (unsigned i=0;i<slaves.size();i++) {
+                    if (typename LocalKIncomingSparseMatrix::SPtr local = sofa::core::objectmodel::SPtr_dynamic_cast<LocalKIncomingSparseMatrix>(slaves[i])) {
+                        m_locals.push_back(local);
+                        return RESULT_CONTINUE;
+                    }
+                }
+
+                sofa::core::objectmodel::BaseObjectDescription arg;
+                arg.setAttribute("type",std::string("LocalKIncomingSparseMatrix"));
+                arg.setAttribute("template",typeid(VecReal).name());
+                arg.setAttribute("name",ff->getName() + "_LIM");
+
+                sofa::core::objectmodel::BaseObject::SPtr obj = sofa::core::ObjectFactory::getInstance()->createObject(ff->getContext(), &arg);
+                LocalKIncomingSparseMatrix::SPtr local = sofa::core::objectmodel::SPtr_dynamic_cast<LocalKIncomingSparseMatrix>(obj);
+                if (local== NULL) return RESULT_CONTINUE;
+                local->setFF(ff);
+                ff->addSlave(local);
+
+                m_locals.push_back(local);
+
+                return RESULT_CONTINUE;
+            }
+
+            bool stopAtMechanicalMapping(simulation::Node* /*node*/, core::BaseMapping* map) override {
+                return !map->areMatricesMapped();
+            }
+
+        private:
+            std::vector<typename LocalKIncomingSparseMatrix::SPtr> & m_locals;
+        };
+
+        locals.clear();
+        BuildKLocalVisitor(locals).execute(ctx);
+    }
+
+    void setFF(core::behavior::BaseForceField* ff) {
+        m_ff = ff;
+    }
+
+    virtual std::string getTemplateName() const override {
+        return templateName(this);
+    }
+
+    static std::string templateName(const LocalKIncomingSparseMatrix* = NULL) {
+        return typeid(VecReal).name();
+    }
+
+    void doBuild(component::linearsolver::DefaultMultiMatrixAccessor * accessor) override {
+        m_ff->addKToMatrix(&this->m_params,accessor);
+    }
+
+protected:
+    LocalKIncomingSparseMatrix()
+    : BaseLocalIncomingSparseMatrix<VecReal,VecInt>()
+    , m_ff(NULL){
+        this->m_params.setMFactor(1.0);
+        this->m_params.setBFactor(0.0);
+        this->m_params.setKFactor(0.0);
+    }
+
     core::behavior::BaseForceField * m_ff;
 };
+
+template<class VecReal, class VecInt>
+class LocalMIncomingSparseMatrix : public BaseLocalIncomingSparseMatrix<VecReal,VecInt> {
+public:
+
+    SOFA_CLASS(SOFA_TEMPLATE2(LocalMIncomingSparseMatrix,VecReal,VecInt),SOFA_TEMPLATE2(BaseLocalIncomingSparseMatrix,VecReal,VecInt));
+
+    static void doCreateVisitor(std::vector<typename LocalMIncomingSparseMatrix::SPtr> & locals, core::objectmodel::BaseContext * ctx) {
+        class BuildMLocalVisitor : public simulation::MechanicalVisitor {
+        public:
+
+            BuildMLocalVisitor(std::vector<typename LocalMIncomingSparseMatrix::SPtr> & locals)
+            : simulation::MechanicalVisitor(core::MechanicalParams::defaultInstance())
+            , m_locals(locals) {}
+
+            const char* getClassName() const override { return "BuildLocalMVisitor"; }
+
+            Result fwdMass(simulation::Node* /*node*/, core::behavior::BaseMass* ff) override {
+                auto slaves = ff->getSlaves();
+
+                for (unsigned i=0;i<slaves.size();i++) {
+                    if (typename LocalMIncomingSparseMatrix::SPtr local = sofa::core::objectmodel::SPtr_dynamic_cast<LocalMIncomingSparseMatrix>(slaves[i])) {
+                        m_locals.push_back(local);
+                        return RESULT_CONTINUE;
+                    }
+                }
+
+//                typename LocalMIncomingSparseMatrix::SPtr local = core::objectmodel::New<LocalMIncomingSparseMatrix>(ff);
+
+                sofa::core::objectmodel::BaseObjectDescription arg;
+                arg.setAttribute("type",std::string("LocalMIncomingSparseMatrix"));
+                arg.setAttribute("template",typeid(VecReal).name());
+                arg.setAttribute("name",ff->getName() + "_LIM");
+
+                sofa::core::objectmodel::BaseObject::SPtr obj = sofa::core::ObjectFactory::getInstance()->createObject(ff->getContext(), &arg);
+                LocalMIncomingSparseMatrix::SPtr local = sofa::core::objectmodel::SPtr_dynamic_cast<LocalMIncomingSparseMatrix>(obj);
+                if (local== NULL) return RESULT_CONTINUE;
+                local->setFF(ff);
+                ff->addSlave(local);
+
+                m_locals.push_back(local);
+
+                return RESULT_CONTINUE;
+            }
+
+            bool stopAtMechanicalMapping(simulation::Node* /*node*/, core::BaseMapping* map) override {
+                return !map->areMatricesMapped();
+            }
+
+        private:
+            std::vector<typename LocalMIncomingSparseMatrix::SPtr> & m_locals;
+        };
+
+        locals.clear();
+        BuildMLocalVisitor(locals).execute(ctx);
+    }
+
+    void setFF(core::behavior::BaseMass * ff) {
+        m_ff = ff;
+    }
+
+    virtual std::string getTemplateName() const override {
+        return templateName(this);
+    }
+
+    static std::string templateName(const LocalMIncomingSparseMatrix* = NULL) {
+        return typeid(VecReal).name();
+    }
+
+    void doBuild(component::linearsolver::DefaultMultiMatrixAccessor * accessor) override {
+        m_ff->addMToMatrix(&this->m_params,accessor);
+    }
+
+protected:
+    LocalMIncomingSparseMatrix()
+    : BaseLocalIncomingSparseMatrix<VecReal,VecInt>()
+    , m_ff(NULL){
+        this->m_params.setMFactor(1.0);
+        this->m_params.setBFactor(0.0);
+        this->m_params.setKFactor(0.0);
+    }
+
+    core::behavior::BaseMass * m_ff;
+};
+
+
+
 
 
 
