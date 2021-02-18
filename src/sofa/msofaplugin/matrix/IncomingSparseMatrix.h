@@ -2,7 +2,6 @@
 
 #include <sofa/msofaplugin/matrix/BaseSystemMatrix.h>
 #include <sofa/msofaplugin/matrix/CompressableMatrix.h>
-#include <sofa/msofaplugin/matrix/BuildMatrixVisitors.h>
 #include <sofa/defaulttype/BaseMatrix.h>
 #include <sofa/core/behavior/MultiMatrixAccessor.h>
 #include <sofa/msofaplugin/matrix/MechanicalVector.h>
@@ -20,7 +19,7 @@
 namespace sofa::msofaplugin::matrix {
 
 template<class VecReal,class VecInt>
-class FullIncomingBaseMatrix : public defaulttype::BaseMatrix {
+class BuildingIncomingMatrix : public defaulttype::BaseMatrix {
 public:
     typedef typename RealType<VecReal>::Real Real;
     typedef defaulttype::BaseMatrix::Index Index;
@@ -32,10 +31,9 @@ public:
         unsigned col;
     };
 
-    FullIncomingBaseMatrix() {
-        m_keepStruct = false;
-        m_compressed = false;
-    }
+    BuildingIncomingMatrix(unsigned & r,unsigned & c)
+    : m_rowSize(r)
+    , m_colSize(c) {}
 
     Index rowSize(void) const override {
         return m_rowSize;
@@ -49,7 +47,7 @@ public:
         return m_nnz;
     }
 
-    SReal element(Index i, Index j) const override { return 0.0; }
+    SReal element(Index /*i*/, Index /*j*/) const override { return 0.0; }
 
     void resize(Index nbRow, Index nbCol) {
         m_rowSize = nbRow;
@@ -60,11 +58,9 @@ public:
         m_rowSize = 0;
         m_colSize = 0;
         m_writeId = 0;
-        m_compressed = false;
         m_clearCols.clear();
         m_clearRows.clear();
         m_setValId.clear();
-        m_sparseValuesPtr = m_sparseValuesVec.data();
     }
 
     void set(Index i, Index j, double v) override {
@@ -73,59 +69,42 @@ public:
     }
 
     inline void add( Index i, Index j, double v ) override {
-        m_keepStruct = (m_keepStruct) &&
-                       (m_sparseIndices.size() > m_writeId) &&
-                       (m_sparseIndices[m_writeId].row == i) && //not necessary?
-                       (m_sparseIndices[m_writeId].col == j);
+        m_sparseValuesVec.resize(m_writeId+1);
 
-        if (! m_keepStruct) {
-            m_sparseValuesVec.resize(m_writeId+1);
-            m_sparseValuesPtr = m_sparseValuesVec.data();
+        m_sparseIndices.resize(m_writeId+1);
+        m_sparseIndices[m_writeId] = MatrixCoord(i,j);
 
-            m_sparseIndices.resize(m_writeId+1);
-            m_sparseIndices[m_writeId] = MatrixCoord(i,j);
-        }
-
-        m_sparseValuesPtr[m_writeId] = v;
+        m_sparseValuesVec[m_writeId] = v;
         m_writeId++;
     }
 
     inline void add(Index i, Index j, const defaulttype::Mat3x3d & M) override {
-        // only check for for topleft coord
-        m_keepStruct = m_keepStruct &&
-                       m_sparseIndices.size() > (m_writeId+9) &&
-                       m_sparseIndices[m_writeId].row == i && //not necessary?
-                       m_sparseIndices[m_writeId].col == j;
+        m_sparseValuesVec.fastResize(m_writeId+9);
 
-        if (! m_keepStruct) {
-            m_sparseValuesVec.fastResize(m_writeId+9);
-            m_sparseValuesPtr = m_sparseValuesVec.data();
+        m_sparseIndices.resize(m_writeId+9);
+        m_sparseIndices[m_writeId+0] = MatrixCoord(i+0,j+0);
+        m_sparseIndices[m_writeId+1] = MatrixCoord(i+0,j+1);
+        m_sparseIndices[m_writeId+2] = MatrixCoord(i+0,j+2);
 
-            m_sparseIndices.resize(m_writeId+9);
-            m_sparseIndices[m_writeId+0] = MatrixCoord(i+0,j+0);
-            m_sparseIndices[m_writeId+1] = MatrixCoord(i+0,j+1);
-            m_sparseIndices[m_writeId+2] = MatrixCoord(i+0,j+2);
+        m_sparseIndices[m_writeId+3] = MatrixCoord(i+1,j+0);
+        m_sparseIndices[m_writeId+4] = MatrixCoord(i+1,j+1);
+        m_sparseIndices[m_writeId+5] = MatrixCoord(i+1,j+2);
 
-            m_sparseIndices[m_writeId+3] = MatrixCoord(i+1,j+0);
-            m_sparseIndices[m_writeId+4] = MatrixCoord(i+1,j+1);
-            m_sparseIndices[m_writeId+5] = MatrixCoord(i+1,j+2);
+        m_sparseIndices[m_writeId+6] = MatrixCoord(i+2,j+0);
+        m_sparseIndices[m_writeId+7] = MatrixCoord(i+2,j+1);
+        m_sparseIndices[m_writeId+8] = MatrixCoord(i+2,j+2);
 
-            m_sparseIndices[m_writeId+6] = MatrixCoord(i+2,j+0);
-            m_sparseIndices[m_writeId+7] = MatrixCoord(i+2,j+1);
-            m_sparseIndices[m_writeId+8] = MatrixCoord(i+2,j+2);
-        }
+        m_sparseValuesVec[m_writeId++] = M[0][0];
+        m_sparseValuesVec[m_writeId++] = M[0][1];
+        m_sparseValuesVec[m_writeId++] = M[0][2];
 
-        m_sparseValuesPtr[m_writeId++] = M[0][0];
-        m_sparseValuesPtr[m_writeId++] = M[0][1];
-        m_sparseValuesPtr[m_writeId++] = M[0][2];
+        m_sparseValuesVec[m_writeId++] = M[1][0];
+        m_sparseValuesVec[m_writeId++] = M[1][1];
+        m_sparseValuesVec[m_writeId++] = M[1][2];
 
-        m_sparseValuesPtr[m_writeId++] = M[1][0];
-        m_sparseValuesPtr[m_writeId++] = M[1][1];
-        m_sparseValuesPtr[m_writeId++] = M[1][2];
-
-        m_sparseValuesPtr[m_writeId++] = M[2][0];
-        m_sparseValuesPtr[m_writeId++] = M[2][1];
-        m_sparseValuesPtr[m_writeId++] = M[2][2];
+        m_sparseValuesVec[m_writeId++] = M[2][0];
+        m_sparseValuesVec[m_writeId++] = M[2][1];
+        m_sparseValuesVec[m_writeId++] = M[2][2];
     }
 
     void clearRow(Index i) override {
@@ -158,8 +137,6 @@ public:
     }
 
     void inline rebuildPatternAccess() {
-        if (m_keepStruct) return;
-
         std::vector<int> countvec;
 
         std::vector<int> tmp_colptr;//CRS format
@@ -267,7 +244,7 @@ public:
         //Compute the compressed row sparse format and collapse values
         for (unsigned j=0;j<m_rowSize;j++) {
             int newcol=-1;
-            for (unsigned i=tmp_colptr[j];i<tmp_colptr[j+1];i++) {
+            for (int i=tmp_colptr[j];i<tmp_colptr[j+1];i++) {
                 // add new values only if needed
                 if (tmp_rowind[i] != newcol) {
                     newcol = tmp_rowind[i];
@@ -282,8 +259,6 @@ public:
         m_valptr.push_back(tmp_colptr[m_rowSize]);
 
         m_nnz = m_colptr[m_rowSize];
-
-        m_keepStruct = true;
     }
 
     const VecInt & getColPtr() const {
@@ -306,23 +281,17 @@ public:
         return m_sparseValuesVec;
     }
 
-    unsigned getWriteId() {
-        return m_writeId;
-    }
-
     int getSize(){
         return m_sparseIndices.size();
     }
 
 private :
-    unsigned m_colSize,m_rowSize,m_nnz;
+    unsigned & m_colSize;
+    unsigned & m_rowSize;
+    unsigned m_nnz,m_writeId;
 
-    Real * m_sparseValuesPtr; // this ptr is used for gpu data It allows to not check the avalaibility of data every tim a new incoming value is pused in the vector
     mutable VecReal m_sparseValuesVec; // incoming new values
     mutable helper::vector<MatrixCoord> m_sparseIndices; // incoming vector of coordinated used to check the consistency of the structure
-    mutable bool m_keepStruct;
-    mutable bool m_compressed;
-    mutable int m_writeId;
 
     mutable VecInt m_colptr;//CRS format
     mutable VecInt m_rowind;
@@ -333,61 +302,52 @@ private :
     mutable helper::vector<int> m_clearCols,m_clearRows,m_setValId;
 };
 
-template<class Real, class VecReal, class VecInt>
-class FullInternalCompressed : public CompressedMatrix<Real> {
-public:
 
-    FullInternalCompressed(const FullIncomingBaseMatrix<VecReal,VecInt> * matrix, double m, double k)
-    : m_matrix(matrix)
-    , mfact(m), kfact(k), used(true) {}
-
-    const int * getRowBegin() const override {
-        return m_matrix->getColPtr().data();
-    }
-
-    const int * getColsIndex() const override {
-        return m_matrix->getRowInd().data();
-    }
-
-    const Real * getColsValue() const override {
-        return m_values.data();
-    }
-
-    virtual unsigned colSize() const override {
-        return m_matrix->colSize();
-    }
-
-    virtual unsigned rowSize() const override {
-        return m_matrix->rowSize();
-    }
-
-    const FullIncomingBaseMatrix<VecReal,VecInt> * m_matrix;
-    VecReal m_values;
-    double mfact;
-    double kfact;
-    bool used;
-};
 
 template<class VecReal,class VecInt>
-class BaseFullIncomingSparseMatrix : public CompressableMatrix<VecReal,VecInt> {
+class BaseIncomingSparseMatrix : public CompressableMatrix<VecReal,VecInt> {
 public:
+    SOFA_ABSTRACT_CLASS(SOFA_TEMPLATE2(BaseIncomingSparseMatrix,VecReal,VecInt),SOFA_TEMPLATE2(CompressableMatrix, VecReal,VecInt) );
 
     typedef typename CompressableMatrix<VecReal,VecInt>::Real Real;
-    typedef std::shared_ptr<FullInternalCompressed<Real, VecReal,VecInt>> FullCompressedMatrix;
 
-    SOFA_ABSTRACT_CLASS(SOFA_TEMPLATE2(BaseFullIncomingSparseMatrix,VecReal,VecInt),SOFA_TEMPLATE2(CompressableMatrix, VecReal,VecInt) );
+    template<class Real>
+    class InternalCompressed : public CompressedMatrix<Real> {
+    public:
+
+        InternalCompressed(VecInt & colptr,VecInt & rowInd, VecReal & values, unsigned r, unsigned c)
+        : m_colptr(colptr)
+        , m_rowptr(rowInd)
+        , m_values(values)
+        , m_rowSize(r)
+        , m_colSize(c) {}
+
+        const int * getRowBegin() const override { return m_colptr.data(); }
+
+        const int * getColsIndex() const override { return m_rowptr.data(); }
+
+        const Real * getColsValue() const override { return m_values.data(); }
+
+        virtual unsigned colSize() const override { return m_colSize; }
+
+        virtual unsigned rowSize() const override { return m_rowSize; }
+
+        VecInt & m_colptr;
+        VecInt & m_rowptr;
+        VecReal & m_values;
+        unsigned m_rowSize,m_colSize;
+    };
+
+
+    BaseIncomingSparseMatrix()
+    : m_buildingMatrix(m_rowSize,m_colSize) {}
 
     virtual void clear() {
-        m_matrix.clear();
-
-        //Clear unused parameters
-        for (int i=m_compressedValues.size()-1;i>=0;i--) {
-            if (!m_compressedValues[i]->used) m_compressedValues.erase(m_compressedValues.begin()+i);
-        }
+        m_buildingMatrix.clear();
     }
 
     void buildMatrix() override {
-        sofa::helper::AdvancedTimer::stepBegin("prepare");
+        /*sofa::helper::AdvancedTimer::stepBegin("prepare");
 
         component::linearsolver::DefaultMultiMatrixAccessor accessor;
         accessor.setGlobalMatrix(&m_matrix);
@@ -417,56 +377,30 @@ public:
         for (unsigned i=0;i<m_compressedValues.size();i++) m_toCompress.push_back(i);
         compress();
 
-        sofa::helper::AdvancedTimer::stepEnd("compress");
+        sofa::helper::AdvancedTimer::stepEnd("compress");*/
     }
 
-    std::shared_ptr<CompressedMatrix<Real>> getCompressedMatrix(const core::MechanicalParams * mparams) {
-        int id = addParams(mparams);
-        return m_compressedValues[id];
+    typename CompressedMatrix<Real>::SPtr getCompressedMatrix(const core::MechanicalParams * mparams) {
+        /*int id = addParams(mparams);
+        return m_compressedValues[id];*/
     }
-
-//    static std::string Name();
-
-//    virtual std::string getTemplateName() const override {
-//        return Name();
-//    }
 
     virtual unsigned colSize() const {
-        return m_matrix.cols();
+        return m_colSize;
     }
 
     virtual unsigned rowSize() const {
-        return m_matrix.rows();
+        return m_rowSize;
     }
 
 protected:
-    FullIncomingBaseMatrix<VecReal,VecInt> m_matrix;
-    unsigned m_mid,m_kid; // last index of mass and stiffness contributions
-    mutable std::vector<FullCompressedMatrix> m_compressedValues; // memorize parameter in order to group compression step
-    mutable std::vector<unsigned> m_toCompress;    
-
-    unsigned addParams(const core::MechanicalParams * mparams) {
-        for (unsigned i=0;i<m_compressedValues.size();i++) {
-            if (m_compressedValues[i]->mfact == mparams->mFactor() &&
-                m_compressedValues[i]->kfact == mparams->kFactor()) {
-                m_compressedValues[i]->used = true;
-                return i;
-            }
-        }
-
-        unsigned id = m_compressedValues.size();
-        m_compressedValues.push_back(FullCompressedMatrix(new FullInternalCompressed<Real, VecReal,VecInt>(&m_matrix, mparams->mFactor(), mparams->kFactor())));
-        m_toCompress.push_back(id);
-        compress();
-        return id;
-    }
-
-    virtual void compress() const = 0;
+    unsigned m_rowSize,m_colSize;
+    BuildingIncomingMatrix<VecReal,VecInt> m_buildingMatrix;
 
 };
 
 template<class TReal>
-class FullIncomingSparseMatrix : public BaseFullIncomingSparseMatrix<helper::vector<TReal>, helper::vector<int>> {
+class IncomingSparseMatrix : public BaseIncomingSparseMatrix<helper::vector<TReal>, helper::vector<int>> {
 public:
 
 
@@ -474,13 +408,13 @@ public:
     typedef helper::vector<TReal> VecReal;
     typedef helper::vector<int> VecInt;
 
-    SOFA_CLASS(SOFA_TEMPLATE(FullIncomingSparseMatrix,TReal),SOFA_TEMPLATE2(BaseFullIncomingSparseMatrix, VecReal, VecInt));
+    SOFA_CLASS(SOFA_TEMPLATE(IncomingSparseMatrix,TReal),SOFA_TEMPLATE2(BaseIncomingSparseMatrix, VecReal, VecInt));
 
     Data<int> d_thread;
 
-    FullIncomingSparseMatrix()
+    IncomingSparseMatrix()
     : d_thread(initData(&d_thread, 4,"thread","Number of threads")) {}
-
+/*
     inline void compress() const override {
         if (this->m_toCompress.empty()) return;
 
@@ -522,8 +456,9 @@ public:
         for (int t=0;t<NBTHREAD;t++) threads[t].join();
         this->m_toCompress.clear();
     }
-
+*/
     void mult(core::MechanicalParams * mparams, BaseSystemMatrix::MechanicalVectorId & x, const BaseSystemMatrix::MechanicalVectorId & b, bool acc) override {
+        /*
 //        TIMER_START(Mult);
         unsigned id = this->addParams(mparams);
 
@@ -562,6 +497,7 @@ public:
 
 //        TIMER_END(Mult);
 //        TIMER_PRINT("mult CG " << Mult << " ms");
+*/
     }
 };
 

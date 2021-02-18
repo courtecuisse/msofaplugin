@@ -8,6 +8,8 @@ namespace sofa::msofaplugin::matrix {
 template<class Real>
 class CompressedMatrix {
 public:
+    typedef std::shared_ptr<CompressedMatrix<Real> > SPtr;
+
     virtual unsigned colSize() const = 0;
 
     virtual unsigned rowSize() const = 0;
@@ -64,7 +66,7 @@ public:
 
     virtual void postBuildMatrix() override {}
 
-    virtual std::shared_ptr<CompressedMatrix<Real>> getCompressedMatrix(const core::MechanicalParams * mparams) = 0;
+    virtual typename CompressedMatrix<Real>::SPtr getCompressedMatrix(const core::MechanicalParams * mparams) = 0;
 
     double dot(MechanicalVectorId & a,MechanicalVectorId & b) override {
         auto Amv = getMechanicalVector(a);
