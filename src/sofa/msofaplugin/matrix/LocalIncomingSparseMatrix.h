@@ -261,23 +261,23 @@ public:
         m_nnz = m_colptr[m_rowSize];
     }
 
-    const VecInt & getColPtr() const {
+    VecInt & getColPtr() {
         return m_colptr;
     }
 
-    const VecInt & getRowInd() const {
+    VecInt & getRowInd() {
         return m_rowind;
     }
 
-    const VecInt & getValPtr() const {
+    VecInt & getValPtr() {
         return m_valptr;
     }
 
-    const VecInt & getsortId() const {
+    VecInt & getsortId() {
         return m_sortid;
     }
 
-    const VecReal & getSparseValues() const {
+    VecReal & getSparseValues() {
         return m_sparseValuesVec;
     }
 
@@ -324,6 +324,30 @@ public:
         doBuild(&accessor);
 
         m_buildingMatrix.rebuildPatternAccess();
+    }
+
+    unsigned rowSize() {
+        return m_rowSize;
+    }
+
+    unsigned colSize() {
+        return m_colSize;
+    }
+
+    unsigned getNnz() {
+        return m_buildingMatrix.getRowInd().size();
+    }
+
+    VecInt & getColptr() {
+        return m_buildingMatrix.getColPtr();
+    }
+
+    VecInt & getRowind() {
+        return m_buildingMatrix.getRowInd();
+    }
+
+    VecReal & getValues() {
+        return m_buildingMatrix.getSparseValues();
     }
 
 protected:

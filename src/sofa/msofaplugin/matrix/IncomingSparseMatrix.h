@@ -14,10 +14,28 @@
 #include <fstream>
 #include <thread>
 #include <stdlib.h>
-
+#include <Eigen/Sparse>
 #include <sofa/helper/AdvancedTimer.h>
 
 namespace sofa::msofaplugin::matrix {
+
+template<class Real>
+class EigenCompressedMatrix : public CompressedMatrix<Real> {
+public:
+    EigenCompressedMatrix(Eigen::SparseMatrix<Real,Eigen::RowMajor> & mat) : m_matrix(mat) {}
+
+    const int * getRowBegin() const { return m_matrix.outerIndexPtr(); }
+
+    const int * getColsIndex() const { return m_matrix.innerIndexPtr(); }
+
+    const Real * getColsValue() const { return m_matrix.valuePtr(); }
+
+    virtual unsigned colSize() const { return m_matrix.cols(); }
+
+    virtual unsigned rowSize() const { return m_matrix.rows(); }
+
+    Eigen::SparseMatrix<Real,Eigen::RowMajor> & m_matrix;
+};
 
 template<class VecReal,class VecInt>
 class BaseIncomingSparseMatrix : public CompressableMatrix<VecReal,VecInt> {
@@ -57,17 +75,17 @@ public:
     }
 
     void buildMatrix() override {
-        LocalMIncomingSparseMatrix<VecReal,VecInt>::doCreateVisitor(m_matrices,this->getContext());
-        LocalKIncomingSparseMatrix<VecReal,VecInt>::doCreateVisitor(k_matrices,this->getContext());
+        LocalMIncomingSparseMatrix<VecReal,VecInt>::doCreateVisitor(m_Matrices,this->getContext());
+        LocalKIncomingSparseMatrix<VecReal,VecInt>::doCreateVisitor(m_Katrices,this->getContext());
 
-        for (unsigned i=0;i<m_matrices.size();i++) {
-            m_matrices[i]->resize(this->m_globalSize,this->m_globalSize);
-            m_matrices[i]->buildMatrix(this->m_stateAccessor);
+        for (unsigned i=0;i<m_Matrices.size();i++) {
+            m_Matrices[i]->resize(this->m_globalSize,this->m_globalSize);
+            m_Matrices[i]->buildMatrix(this->m_stateAccessor);
         }
 
-        for (unsigned i=0;i<k_matrices.size();i++) {
-            m_matrices[i]->resize(this->m_globalSize,this->m_globalSize);
-            k_matrices[i]->buildMatrix(this->m_stateAccessor);
+        for (unsigned i=0;i<m_Katrices.size();i++) {
+            m_Katrices[i]->resize(this->m_globalSize,this->m_globalSize);
+            m_Katrices[i]->buildMatrix(this->m_stateAccessor);
         }
 
 //        sofa::helper::AdvancedTimer::stepNext ("collect", "project");
@@ -82,11 +100,37 @@ public:
 //        compress();
 
 //        sofa::helper::AdvancedTimer::stepEnd("compress");*/
+
+
     }
 
     typename CompressedMatrix<Real>::SPtr getCompressedMatrix(const core::MechanicalParams * mparams) {
-        /*int id = addParams(mparams);
-        return m_compressedValues[id];*/
+        M_global.resize(0,0);
+        M_global.resize(this->m_globalSize,this->m_globalSize);
+
+        for (unsigned i=0;i<m_Matrices.size();i++) {
+            Eigen::Map< Eigen::SparseMatrix<Real,Eigen::RowMajor> > map(m_Matrices[i]->colSize(),
+                                                                        m_Matrices[i]->rowSize(),
+                                                                        m_Matrices[i]->getNnz(),
+                                                                        m_Matrices[i]->getColptr().data(),
+                                                                        m_Matrices[i]->getRowind().data(),
+                                                                        m_Matrices[i]->getValues().data());
+
+            M_global += map*mparams->mFactor();
+        }
+
+        for (unsigned i=0;i<m_Katrices.size();i++) {
+            Eigen::Map< Eigen::SparseMatrix<Real,Eigen::RowMajor> > map(m_Katrices[i]->colSize(),
+                                                                        m_Katrices[i]->rowSize(),
+                                                                        m_Katrices[i]->getNnz(),
+                                                                        m_Katrices[i]->getColptr().data(),
+                                                                        m_Katrices[i]->getRowind().data(),
+                                                                        m_Katrices[i]->getValues().data());
+
+            M_global += map*mparams->kFactor();
+        }
+
+        return typename CompressedMatrix<Real>::SPtr(new EigenCompressedMatrix<Real>(M_global));
     }
 
     virtual unsigned colSize() const {
@@ -99,8 +143,9 @@ public:
 
 protected:
     unsigned m_rowSize,m_colSize;
-    std::vector<typename LocalMIncomingSparseMatrix<VecReal,VecInt>::SPtr> m_matrices;
-    std::vector<typename LocalKIncomingSparseMatrix<VecReal,VecInt>::SPtr> k_matrices;
+    std::vector<typename LocalMIncomingSparseMatrix<VecReal,VecInt>::SPtr> m_Matrices;
+    std::vector<typename LocalKIncomingSparseMatrix<VecReal,VecInt>::SPtr> m_Katrices;
+    Eigen::SparseMatrix<Real,Eigen::RowMajor> M_global;
 };
 
 template<class TReal>
@@ -114,100 +159,12 @@ public:
 
     SOFA_CLASS(SOFA_TEMPLATE(IncomingSparseMatrix,TReal),SOFA_TEMPLATE2(BaseIncomingSparseMatrix, VecReal, VecInt));
 
-    Data<int> d_thread;
-
-    IncomingSparseMatrix()
-    : d_thread(initData(&d_thread, 4,"thread","Number of threads")) {}
-/*
-    inline void compress() const override {
-        if (this->m_toCompress.empty()) return;
-
-        int nnz = this->m_matrix.getColPtr()[this->m_matrix.rowSize()];
-
-        for (unsigned k=0;k<this->m_toCompress.size();k++) {
-            auto & ic = this->m_compressedValues[this->m_toCompress[k]];
-            ic->m_values.clear();
-            ic->m_values.resize(nnz);
-        }
-
-        const TReal * sparsevalues = this->m_matrix.getSparseValues().data();
-        const int * valptr = this->m_matrix.getValPtr().data();
-        const int * sortid = this->m_matrix.getsortId().data();
-
-        auto thread_worker = [&] (int start, int end) {
-            for (unsigned i=start;i<end;i++) {
-                for (unsigned k=0;k<this->m_toCompress.size();k++) {
-                    auto & ic = this->m_compressedValues[this->m_toCompress[k]];
-                    for (unsigned j=valptr[i];j<valptr[i+1];j++) {
-                        const int id = sortid[j];
-                        const double fact = (id < this->m_kid) ? ic->kfact : (id < this->m_mid) ? ic->mfact : 1.0;
-                        ic->m_values[i] += sparsevalues[id] * fact;
-                    }
-                }
-            }
-        };
-
-        int start = 0;
-        int NBTHREAD = d_thread.getValue();
-        int NBLOCS=(nnz+NBTHREAD)/NBTHREAD;
-        std::vector<std::thread> threads;
-        threads.resize(NBTHREAD);
-        for (int t=0;t<NBTHREAD;t++) {
-            int end = std::min(start+NBLOCS,nnz);
-            threads[t]=std::thread(thread_worker, start, end);
-            start=end;
-        }
-        for (int t=0;t<NBTHREAD;t++) threads[t].join();
-        this->m_toCompress.clear();
-    }
-*/
     void mult(core::MechanicalParams * mparams, BaseSystemMatrix::MechanicalVectorId & x, const BaseSystemMatrix::MechanicalVectorId & b, bool acc) override {
 
         std::cout << "MULT " << std::endl;
-        /*
-//        TIMER_START(Mult);
-        unsigned id = this->addParams(mparams);
 
-        auto X = this->getMechanicalVector(x);
-        auto B = this->getMechanicalVector(b);
-
-        TReal * x_ptr = X->write()->data();
-        const TReal * b_ptr = B->read()->data();
-
-        if (! acc) memset(x_ptr,0,this->m_matrix.rowSize()*sizeof(TReal));
-
-        const int * colptr = this->m_matrix.getColPtr().data();
-        const int * rowind = this->m_matrix.getRowInd().data();
-        const Real * values = this->m_compressedValues[id]->m_values.data();
-
-        auto thread_worker = [&] (int start, int end) {
-            for (unsigned j=start;j<end;j++) {
-                for (unsigned i=colptr[j];i<colptr[j+1];i++) {
-                    x_ptr[j] += b_ptr[rowind[i]] * values[i];
-                }
-            }
-        };
-
-        const int size = this->m_matrix.rowSize();
-        int NBTHREAD = d_thread.getValue();
-        int NBLOCS=(size+NBTHREAD-1)/NBTHREAD;
-        int start = 0;
-        std::vector<std::thread> threads(NBTHREAD);
-        for (int t=0;t<NBTHREAD;t++) {
-            int end = std::min(start+NBLOCS,size);
-            threads[t]=std::thread(thread_worker, start, end);
-            start=end;
-        }
-        for (int t=0;t<NBTHREAD;t++) threads[t].join();
-
-
-//        TIMER_END(Mult);
-//        TIMER_PRINT("mult CG " << Mult << " ms");
-*/
     }
 };
 
-//template<> std::string IncomingSparseMatrix<float>::Name() { return "float"; }
-//template<> std::string IncomingSparseMatrix<double>::Name() { return "double"; }
 
 }
