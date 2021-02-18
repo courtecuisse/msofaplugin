@@ -148,6 +148,17 @@ protected:
     Eigen::SparseMatrix<Real,Eigen::RowMajor> M_global;
 };
 
+template<class Real>
+struct EigenType;
+
+template<> struct EigenType<double> {
+    typedef Eigen::VectorXd Vector;
+};
+
+template<> struct EigenType<float> {
+    typedef Eigen::VectorXf Vector;
+};
+
 template<class TReal>
 class IncomingSparseMatrix : public BaseIncomingSparseMatrix<helper::vector<TReal>, helper::vector<int>> {
 public:
@@ -160,9 +171,40 @@ public:
     SOFA_CLASS(SOFA_TEMPLATE(IncomingSparseMatrix,TReal),SOFA_TEMPLATE2(BaseIncomingSparseMatrix, VecReal, VecInt));
 
     void mult(core::MechanicalParams * mparams, BaseSystemMatrix::MechanicalVectorId & x, const BaseSystemMatrix::MechanicalVectorId & b, bool acc) override {
+        auto X = this->getMechanicalVector(x)->write();
+        auto B = this->getMechanicalVector(b)->read();
 
-        std::cout << "MULT " << std::endl;
+        TReal * x_ptr = X->data();
+        const TReal * b_ptr = B->data();
 
+        if (! acc) {
+            for (unsigned i=0;i<this->m_globalSize;i++) x_ptr[i] = 0;
+        }
+
+        Eigen::Map<typename EigenType<TReal>::Vector> ex(x_ptr,this->m_globalSize);
+        Eigen::Map<typename EigenType<TReal>::Vector> eb((TReal*) b_ptr,this->m_globalSize);
+
+        for (unsigned i=0;i<this->m_Matrices.size();i++) {
+            Eigen::Map< Eigen::SparseMatrix<Real,Eigen::RowMajor> > M(this->m_Matrices[i]->colSize(),
+                                                                      this->m_Matrices[i]->rowSize(),
+                                                                      this->m_Matrices[i]->getNnz(),
+                                                                      this->m_Matrices[i]->getColptr().data(),
+                                                                      this->m_Matrices[i]->getRowind().data(),
+                                                                      this->m_Matrices[i]->getValues().data());
+
+            ex += M * eb * mparams->mFactor();
+        }
+
+        for (unsigned i=0;i<this->m_Katrices.size();i++) {
+            Eigen::Map< Eigen::SparseMatrix<Real,Eigen::RowMajor> > K(this->m_Katrices[i]->colSize(),
+                                                                      this->m_Katrices[i]->rowSize(),
+                                                                      this->m_Katrices[i]->getNnz(),
+                                                                      this->m_Katrices[i]->getColptr().data(),
+                                                                      this->m_Katrices[i]->getRowind().data(),
+                                                                      this->m_Katrices[i]->getValues().data());
+
+            ex += K * eb * mparams->kFactor();
+        }
     }
 };
 
