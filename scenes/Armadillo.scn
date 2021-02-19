@@ -33,7 +33,7 @@
 		
 		<TetrahedronFEMForceField name="FEM" youngModulus="500" poissonRatio="0.4" />
 
-		<FixedConstraint name="fixed" indices="@../RegularGrid/box.indices" />
+                <FixedConstraint name="fixed" indices="@../RegularGrid/box.indices" />
 		
 		<Node name="Surf">
 			<TriangleSetTopologyContainer name="Container" />
@@ -130,8 +130,8 @@ print('NORM A2 = ',norm(A2))
 print('NORM RES = ',norm(RES))
 
 
-plt.spy(A1)
-plt.show()
+#plt.spy(A1)
+#plt.show()
 " />
 
 <PyTerminal />

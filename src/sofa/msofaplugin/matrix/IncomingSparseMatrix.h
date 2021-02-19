@@ -75,7 +75,7 @@ public:
     }
 
     void buildMatrix() override {
-//        LocalMIncomingSparseMatrix<VecReal,VecInt>::doCreateVisitor(m_Matrices,this->getContext());
+        LocalMIncomingSparseMatrix<VecReal,VecInt>::doCreateVisitor(m_Matrices,this->getContext());
         LocalKIncomingSparseMatrix<VecReal,VecInt>::doCreateVisitor(m_Katrices,this->getContext());
 
         for (unsigned i=0;i<m_Matrices.size();i++) {

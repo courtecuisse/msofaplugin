@@ -56,8 +56,6 @@ public:
     }
 
     void clear() {
-        m_rowSize = 0;
-        m_colSize = 0;
         m_writeId = 0;
         m_clearCols.clear();
         m_clearRows.clear();
@@ -264,11 +262,10 @@ public:
         m_values.clear();
         m_values.resize(m_rowind.size());
 
-        std::cout << m_sparseValuesVec << std::endl;
         for (unsigned i=0;i<m_rowind.size();i++) {
             for (unsigned j=m_valptr[i];j<m_valptr[i+1];j++) {
                 const int id = m_sortid[j];
-                m_values[i] += m_sparseValuesVec[i];
+                m_values[i] += m_sparseValuesVec[id];
             }
         }
     }
@@ -319,6 +316,8 @@ public:
     }
 
     void buildMatrix(std::vector<BaseStateAccessor::SPtr> & vacc) {
+        m_buildingMatrix.clear();
+
         component::linearsolver::DefaultMultiMatrixAccessor accessor;
         accessor.setGlobalMatrix(&m_buildingMatrix);
         accessor.setupMatrices();
@@ -442,9 +441,9 @@ protected:
     LocalKIncomingSparseMatrix()
     : BaseLocalIncomingSparseMatrix<VecReal,VecInt>()
     , m_ff(NULL){
-        this->m_params.setMFactor(1.0);
+        this->m_params.setMFactor(0.0);
         this->m_params.setBFactor(0.0);
-        this->m_params.setKFactor(0.0);
+        this->m_params.setKFactor(1.0);
     }
 
     core::behavior::BaseForceField * m_ff;
