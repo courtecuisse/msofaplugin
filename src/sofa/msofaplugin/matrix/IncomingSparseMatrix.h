@@ -149,13 +149,13 @@ protected:
 };
 
 template<class Real>
-struct EigenType;
+struct IncomingEigenType;
 
-template<> struct EigenType<double> {
+template<> struct IncomingEigenType<double> {
     typedef Eigen::VectorXd Vector;
 };
 
-template<> struct EigenType<float> {
+template<> struct IncomingEigenType<float> {
     typedef Eigen::VectorXf Vector;
 };
 
@@ -181,8 +181,8 @@ public:
             for (unsigned i=0;i<this->m_globalSize;i++) x_ptr[i] = 0;
         }
 
-        Eigen::Map<typename EigenType<TReal>::Vector> ex(x_ptr,this->m_globalSize);
-        Eigen::Map<typename EigenType<TReal>::Vector> eb((TReal*) b_ptr,this->m_globalSize);
+        Eigen::Map<typename IncomingEigenType<TReal>::Vector> ex(x_ptr,this->m_globalSize);
+        Eigen::Map<typename IncomingEigenType<TReal>::Vector> eb((TReal*) b_ptr,this->m_globalSize);
 
         for (unsigned i=0;i<this->m_Matrices.size();i++) {
             Eigen::Map< Eigen::SparseMatrix<Real,Eigen::RowMajor> > M(this->m_Matrices[i]->colSize(),
