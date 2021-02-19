@@ -24,11 +24,11 @@ class EigenCompressedMatrix : public CompressedMatrix<Real> {
 public:
     EigenCompressedMatrix(Eigen::SparseMatrix<Real,Eigen::RowMajor> & mat) : m_matrix(mat) {}
 
-    const int * getRowBegin() const { return m_matrix.outerIndexPtr(); }
+    const int * getColptr() const { return m_matrix.outerIndexPtr(); }
 
-    const int * getColsIndex() const { return m_matrix.innerIndexPtr(); }
+    const int * getRowind() const { return m_matrix.innerIndexPtr(); }
 
-    const Real * getColsValue() const { return m_matrix.valuePtr(); }
+    const Real * getValues() const { return m_matrix.valuePtr(); }
 
     virtual unsigned colSize() const { return m_matrix.cols(); }
 
@@ -75,7 +75,7 @@ public:
     }
 
     void buildMatrix() override {
-        LocalMIncomingSparseMatrix<VecReal,VecInt>::doCreateVisitor(m_Matrices,this->getContext());
+//        LocalMIncomingSparseMatrix<VecReal,VecInt>::doCreateVisitor(m_Matrices,this->getContext());
         LocalKIncomingSparseMatrix<VecReal,VecInt>::doCreateVisitor(m_Katrices,this->getContext());
 
         for (unsigned i=0;i<m_Matrices.size();i++) {
@@ -120,6 +120,8 @@ public:
         }
 
         for (unsigned i=0;i<m_Katrices.size();i++) {
+//            std::cout << "MSIZE NNZ=" << m_Katrices[i]->getNnz() << " GSZ=" << this->m_globalSize << " " << m_Katrices[i]->colSize() << " " << m_Katrices[i]->rowSize() << std::endl;
+//            std::cout << m_Katrices[i]->getValues() << std::endl;
             Eigen::Map< Eigen::SparseMatrix<Real,Eigen::RowMajor> > map(m_Katrices[i]->colSize(),
                                                                         m_Katrices[i]->rowSize(),
                                                                         m_Katrices[i]->getNnz(),

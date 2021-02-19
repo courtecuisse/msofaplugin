@@ -103,6 +103,7 @@ import sys
 import numpy as np
 import scipy.sparse as sp
 import matplotlib.pyplot as plt
+from scipy.sparse.linalg import norm
 
 sofa.load('mSofaPluginBinding')
 root=sofa.root()
@@ -110,21 +111,29 @@ S1=root.getObject('DeformArmadillo1/matrix')
 S2=root.getObject('DeformArmadillo2/matrix')
 
 def sofaToPythonMatrix(M):
-    P=M.colptr()
+    C=M.colptr()
     R=M.rowind()
     V=M.values()
 
-    return sp.csr_matrix((V,R,P), shape=(M.rowSize(),M.colSize()));
+    return sp.csr_matrix((V,R,C), shape=(M.rowSize(),M.colSize()));
 " />
 
 
 <PyStepEvent end="true" begin="false" script="
 A1=sofaToPythonMatrix(S1.getMatrix())
 A2=sofaToPythonMatrix(S2.getMatrix())
+#print(A2)
 RES=A2-A1
-plt.spy(RES)
+
+print('NORM A1 = ',norm(A1))
+print('NORM A2 = ',norm(A2))
+print('NORM RES = ',norm(RES))
+
+
+plt.spy(A1)
 plt.show()
-print('NORM = ',np.linalg.norm(RES))
 " />
+
+<PyTerminal />
 
 </Node>

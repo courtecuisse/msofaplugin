@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <sofa/core/ObjectFactory.h>
 #include <sofa/helper/AdvancedTimer.h>
+#include <Eigen/Sparse>
 
 namespace sofa::msofaplugin::matrix {
 
@@ -69,18 +70,16 @@ public:
     }
 
     inline void add( Index i, Index j, double v ) override {
-        m_sparseValuesVec.resize(m_writeId+1);
-
         m_sparseIndices.resize(m_writeId+1);
         m_sparseIndices[m_writeId] = MatrixCoord(i,j);
 
+        m_sparseValuesVec.resize(m_writeId+1);
         m_sparseValuesVec[m_writeId] = v;
+
         m_writeId++;
     }
 
     inline void add(Index i, Index j, const defaulttype::Mat3x3d & M) override {
-        m_sparseValuesVec.fastResize(m_writeId+9);
-
         m_sparseIndices.resize(m_writeId+9);
         m_sparseIndices[m_writeId+0] = MatrixCoord(i+0,j+0);
         m_sparseIndices[m_writeId+1] = MatrixCoord(i+0,j+1);
@@ -94,6 +93,7 @@ public:
         m_sparseIndices[m_writeId+7] = MatrixCoord(i+2,j+1);
         m_sparseIndices[m_writeId+8] = MatrixCoord(i+2,j+2);
 
+        m_sparseValuesVec.fastResize(m_writeId+9);
         m_sparseValuesVec[m_writeId++] = M[0][0];
         m_sparseValuesVec[m_writeId++] = M[0][1];
         m_sparseValuesVec[m_writeId++] = M[0][2];
@@ -259,30 +259,34 @@ public:
         m_valptr.push_back(tmp_colptr[m_rowSize]);
 
         m_nnz = m_colptr[m_rowSize];
+
+        //Build the values
+        m_values.clear();
+        m_values.resize(m_rowind.size());
+
+        std::cout << m_sparseValuesVec << std::endl;
+        for (unsigned i=0;i<m_rowind.size();i++) {
+            for (unsigned j=m_valptr[i];j<m_valptr[i+1];j++) {
+                const int id = m_sortid[j];
+                m_values[i] += m_sparseValuesVec[i];
+            }
+        }
     }
 
-    VecInt & getColPtr() {
+    VecInt & getColptr() {
         return m_colptr;
     }
 
-    VecInt & getRowInd() {
+    VecInt & getRowind() {
         return m_rowind;
     }
 
-    VecInt & getValPtr() {
-        return m_valptr;
+    VecReal & getValues() {
+        return m_values;
     }
 
-    VecInt & getsortId() {
-        return m_sortid;
-    }
-
-    VecReal & getSparseValues() {
-        return m_sparseValuesVec;
-    }
-
-    int getSize(){
-        return m_sparseIndices.size();
+    int getNnz(){
+        return m_nnz;
     }
 
 private :
@@ -290,16 +294,17 @@ private :
     unsigned & m_rowSize;
     unsigned m_nnz,m_writeId;
 
-    mutable VecReal m_sparseValuesVec; // incoming new values
-    mutable helper::vector<MatrixCoord> m_sparseIndices; // incoming vector of coordinated used to check the consistency of the structure
+    VecReal m_sparseValuesVec; // incoming new values
+    helper::vector<MatrixCoord> m_sparseIndices; // incoming vector of coordinated used to check the consistency of the structure
 
-    mutable VecInt m_colptr;//CRS format
-    mutable VecInt m_rowind;
+    VecInt m_colptr;//CRS format
+    VecInt m_rowind;
+    VecReal m_values;
 
-    mutable VecInt m_valptr;// start and end point of each sum values in the CSR m_values vector
-    mutable VecInt m_sortid;// corresponding indices in the m_sparseIndices vector
+    VecInt m_valptr;// start and end point of each sum values in the CSR m_values vector
+    VecInt m_sortid;// corresponding indices in the m_sparseIndices vector
 
-    mutable helper::vector<int> m_clearCols,m_clearRows,m_setValId;
+    helper::vector<int> m_clearCols,m_clearRows,m_setValId;
 };
 
 template<class VecReal, class VecInt>
@@ -310,7 +315,7 @@ public:
 
     void resize(unsigned r,unsigned c) {
         m_rowSize = r;
-        m_colSize = r;
+        m_colSize = c;
     }
 
     void buildMatrix(std::vector<BaseStateAccessor::SPtr> & vacc) {
@@ -335,19 +340,19 @@ public:
     }
 
     unsigned getNnz() {
-        return m_buildingMatrix.getRowInd().size();
+        return m_buildingMatrix.getNnz();
     }
 
     VecInt & getColptr() {
-        return m_buildingMatrix.getColPtr();
+        return m_buildingMatrix.getColptr();
     }
 
     VecInt & getRowind() {
-        return m_buildingMatrix.getRowInd();
+        return m_buildingMatrix.getRowind();
     }
 
     VecReal & getValues() {
-        return m_buildingMatrix.getSparseValues();
+        return m_buildingMatrix.getValues();
     }
 
 protected:

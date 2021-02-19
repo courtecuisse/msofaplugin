@@ -14,11 +14,11 @@ public:
 
     virtual unsigned rowSize() const = 0;
 
-    virtual const int * getRowBegin() const = 0;
+    virtual const int * getColptr() const = 0;
 
-    virtual const int * getColsIndex() const = 0;
+    virtual const int * getRowind() const = 0;
 
-    virtual const Real * getColsValue() const = 0;
+    virtual const Real * getValues() const = 0;
 };
 
 
