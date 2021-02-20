@@ -75,17 +75,15 @@ public:
     }
 
     void buildMatrix() override {
-        LocalMIncomingSparseMatrix<VecReal,VecInt>::doCreateVisitor(m_Matrices,this->getContext());
-        LocalKIncomingSparseMatrix<VecReal,VecInt>::doCreateVisitor(m_Katrices,this->getContext());
+        LocalIncomingSparseMatrix<VecReal,VecInt>::doCreateVisitor(m_matrices,this->getContext());
 
-        for (unsigned i=0;i<m_Matrices.size();i++) {
-            m_Matrices[i]->resize(this->m_globalSize,this->m_globalSize);
-            m_Matrices[i]->buildMatrix(this->m_stateAccessor);
-        }
-
-        for (unsigned i=0;i<m_Katrices.size();i++) {
-            m_Katrices[i]->resize(this->m_globalSize,this->m_globalSize);
-            m_Katrices[i]->buildMatrix(this->m_stateAccessor);
+        for (unsigned i=0;i<m_matrices.size();i++) {
+            if (m_matrices[i]->colSize() == 0 || m_matrices[i]->rowSize() == 0) {
+                m_matrices[i]->resize(this->m_globalSize,this->m_globalSize);
+                m_matrices[i]->buildMatrix(this->m_stateAccessor);
+            } else {
+                m_matrices[i]->fastReBuild();
+            }
         }
 
 //        sofa::helper::AdvancedTimer::stepNext ("collect", "project");
@@ -108,28 +106,15 @@ public:
         M_global.resize(0,0);
         M_global.resize(this->m_globalSize,this->m_globalSize);
 
-        for (unsigned i=0;i<m_Matrices.size();i++) {
-            Eigen::Map< Eigen::SparseMatrix<Real,Eigen::RowMajor> > map(m_Matrices[i]->colSize(),
-                                                                        m_Matrices[i]->rowSize(),
-                                                                        m_Matrices[i]->getNnz(),
-                                                                        m_Matrices[i]->getColptr().data(),
-                                                                        m_Matrices[i]->getRowind().data(),
-                                                                        m_Matrices[i]->getValues().data());
+        for (unsigned i=0;i<m_matrices.size();i++) {
+            Eigen::Map< Eigen::SparseMatrix<Real,Eigen::RowMajor> > map(m_matrices[i]->colSize(),
+                                                                        m_matrices[i]->rowSize(),
+                                                                        m_matrices[i]->getNnz(),
+                                                                        m_matrices[i]->getColptr().data(),
+                                                                        m_matrices[i]->getRowind().data(),
+                                                                        m_matrices[i]->getValues().data());
 
-            M_global += map*mparams->mFactor();
-        }
-
-        for (unsigned i=0;i<m_Katrices.size();i++) {
-//            std::cout << "MSIZE NNZ=" << m_Katrices[i]->getNnz() << " GSZ=" << this->m_globalSize << " " << m_Katrices[i]->colSize() << " " << m_Katrices[i]->rowSize() << std::endl;
-//            std::cout << m_Katrices[i]->getValues() << std::endl;
-            Eigen::Map< Eigen::SparseMatrix<Real,Eigen::RowMajor> > map(m_Katrices[i]->colSize(),
-                                                                        m_Katrices[i]->rowSize(),
-                                                                        m_Katrices[i]->getNnz(),
-                                                                        m_Katrices[i]->getColptr().data(),
-                                                                        m_Katrices[i]->getRowind().data(),
-                                                                        m_Katrices[i]->getValues().data());
-
-            M_global += map*mparams->kFactor();
+            M_global += map*m_matrices[i]->getFactor(mparams);
         }
 
         return typename CompressedMatrix<Real>::SPtr(new EigenCompressedMatrix<Real>(M_global));
@@ -145,8 +130,7 @@ public:
 
 protected:
     unsigned m_rowSize,m_colSize;
-    std::vector<typename LocalMIncomingSparseMatrix<VecReal,VecInt>::SPtr> m_Matrices;
-    std::vector<typename LocalKIncomingSparseMatrix<VecReal,VecInt>::SPtr> m_Katrices;
+    std::vector<typename LocalIncomingSparseMatrix<VecReal,VecInt>::SPtr> m_matrices;
     Eigen::SparseMatrix<Real,Eigen::RowMajor> M_global;
 };
 
@@ -186,26 +170,15 @@ public:
         Eigen::Map<typename IncomingEigenType<TReal>::Vector> ex(x_ptr,this->m_globalSize);
         Eigen::Map<typename IncomingEigenType<TReal>::Vector> eb((TReal*) b_ptr,this->m_globalSize);
 
-        for (unsigned i=0;i<this->m_Matrices.size();i++) {
-            Eigen::Map< Eigen::SparseMatrix<Real,Eigen::RowMajor> > M(this->m_Matrices[i]->colSize(),
-                                                                      this->m_Matrices[i]->rowSize(),
-                                                                      this->m_Matrices[i]->getNnz(),
-                                                                      this->m_Matrices[i]->getColptr().data(),
-                                                                      this->m_Matrices[i]->getRowind().data(),
-                                                                      this->m_Matrices[i]->getValues().data());
+        for (unsigned i=0;i<this->m_matrices.size();i++) {
+            Eigen::Map< Eigen::SparseMatrix<Real,Eigen::RowMajor> > M(this->m_matrices[i]->colSize(),
+                                                                      this->m_matrices[i]->rowSize(),
+                                                                      this->m_matrices[i]->getNnz(),
+                                                                      this->m_matrices[i]->getColptr().data(),
+                                                                      this->m_matrices[i]->getRowind().data(),
+                                                                      this->m_matrices[i]->getValues().data());
 
-            ex += M * eb * mparams->mFactor();
-        }
-
-        for (unsigned i=0;i<this->m_Katrices.size();i++) {
-            Eigen::Map< Eigen::SparseMatrix<Real,Eigen::RowMajor> > K(this->m_Katrices[i]->colSize(),
-                                                                      this->m_Katrices[i]->rowSize(),
-                                                                      this->m_Katrices[i]->getNnz(),
-                                                                      this->m_Katrices[i]->getColptr().data(),
-                                                                      this->m_Katrices[i]->getRowind().data(),
-                                                                      this->m_Katrices[i]->getValues().data());
-
-            ex += K * eb * mparams->kFactor();
+            ex += M * eb * this->m_matrices[i]->getFactor(mparams);
         }
     }
 };
