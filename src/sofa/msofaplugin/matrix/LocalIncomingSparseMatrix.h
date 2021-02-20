@@ -32,7 +32,7 @@ public:
         unsigned col;
     };
 
-    BuildingIncomingMatrix(unsigned & r,unsigned & c,VecInt & colptr,VecInt & rowind,VecReal & values,VecInt & mapping)
+    BuildingIncomingMatrix(unsigned & r,unsigned & c,VecInt & colptr,VecInt & rowind,VecReal & values,std::vector<int> & mapping)
     : m_rowSize(r)
     , m_colSize(c)
     , m_colptr(colptr)
@@ -212,11 +212,10 @@ public:
 
         valptr.push_back(tmp_colptr[m_rowSize]);
 
-        std::cout << "END MAPPING" << std::endl;
         //Build the mapping
         m_mapping.clear();
         //by default all the values will be sumed to the last value in the m_sparseValuesVec, we initialize the vector with the last index of the vector (size+1)
-        m_mapping.resize(m_sparseValuesVec.size()+1,m_sparseValuesVec.size());
+        m_mapping.resize(m_sparseValuesVec.size(),m_rowind.size());
         for (unsigned i=0;i<m_rowind.size();i++) {
             for (unsigned j=valptr[i];j<valptr[i+1];j++) {
                 m_mapping[sortid[j]] = i;
@@ -225,14 +224,14 @@ public:
 
         //Build the values
         m_values.clear();
-        m_values.resize(m_rowind.size());
+        m_values.resize(m_rowind.size()+1); // +1 to store contribution of projected points
         for (unsigned i=0;i<m_sparseValuesVec.size();i++) {
             m_values[m_mapping[i]] += m_sparseValuesVec[i];
         }
     }
 
 private :
-    VecReal m_sparseValuesVec; // incoming new values
+    std::vector<Real> m_sparseValuesVec; // incoming new values
     helper::vector<MatrixCoord> m_sparseIndices; // incoming vector of coordinated used to check the consistency of the structure
 
     unsigned & m_colSize;
@@ -242,7 +241,7 @@ private :
     VecInt & m_rowind;
     VecReal & m_values;
 
-    VecInt & m_mapping;
+    std::vector<int> & m_mapping;
 };
 
 template<class VecReal,class VecInt>
@@ -251,7 +250,7 @@ public:
     typedef typename RealType<VecReal>::Real Real;
     typedef defaulttype::BaseMatrix::Index Index;
 
-    MappedIncomingMatrix(unsigned & r,unsigned & c,VecReal & values,VecInt & mapping)
+    MappedIncomingMatrix(unsigned & r,unsigned & c,VecReal & values,const std::vector<int> & mapping)
     : m_rowSize(r)
     , m_colSize(c)
     , m_values(values)
@@ -270,29 +269,28 @@ public:
 
     void clear() {
         m_writeId=0;
-        unsigned nnz = m_values.size();
-        m_values.clear();
-        m_values.resize(nnz);
+        m_valuesPtr = m_values.data();
+        memset(m_valuesPtr,0,m_values.size()*sizeof(Real));
     }
 
     void set(Index , Index , double ) override {}
 
     inline void add( Index , Index , double v ) override {
-        m_values[m_mapping[m_writeId++]] += v;
+        m_valuesPtr[m_mapping[m_writeId++]] += v;
     }
 
     inline void add(Index , Index , const defaulttype::Mat3x3d & M) override {
-        m_values[m_mapping[m_writeId++]] += M[0][0];
-        m_values[m_mapping[m_writeId++]] += M[0][1];
-        m_values[m_mapping[m_writeId++]] += M[0][2];
+        m_valuesPtr[m_mapping[m_writeId++]] += M[0][0];
+        m_valuesPtr[m_mapping[m_writeId++]] += M[0][1];
+        m_valuesPtr[m_mapping[m_writeId++]] += M[0][2];
 
-        m_values[m_mapping[m_writeId++]] += M[1][0];
-        m_values[m_mapping[m_writeId++]] += M[1][1];
-        m_values[m_mapping[m_writeId++]] += M[1][2];
+        m_valuesPtr[m_mapping[m_writeId++]] += M[1][0];
+        m_valuesPtr[m_mapping[m_writeId++]] += M[1][1];
+        m_valuesPtr[m_mapping[m_writeId++]] += M[1][2];
 
-        m_values[m_mapping[m_writeId++]] += M[2][0];
-        m_values[m_mapping[m_writeId++]] += M[2][1];
-        m_values[m_mapping[m_writeId++]] += M[2][2];
+        m_valuesPtr[m_mapping[m_writeId++]] += M[2][0];
+        m_valuesPtr[m_mapping[m_writeId++]] += M[2][1];
+        m_valuesPtr[m_mapping[m_writeId++]] += M[2][2];
     }
 
     void clearRow(Index ) override {}
@@ -313,7 +311,8 @@ private :
     unsigned m_writeId;
 
     VecReal & m_values;
-    VecInt & m_mapping;
+    const std::vector<int> & m_mapping;
+    Real * m_valuesPtr; // this pointer may be accessed on GPU
 };
 
 
@@ -481,7 +480,7 @@ protected:
     VecInt m_rowind;
     VecReal m_values;
 
-    VecInt m_mapping;
+    std::vector<int> m_mapping;
 
     component::linearsolver::DefaultMultiMatrixAccessor m_accessor;
     typename BaseInternalBuilder::UPtr m_builder;

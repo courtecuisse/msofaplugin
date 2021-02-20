@@ -64,11 +64,12 @@ public:
     void clear() {
         m_clearCols.clear();
         m_clearRows.clear();
-        m_setValId.clear();
+        m_setVal.clear();
+        m_needRebuild = true;
     }
 
     void set(Index i, Index j, double v) override {
-        m_setValId.push_back(Eigen::Triplet<Real>(i,j,v));
+        m_setVal.push_back(Eigen::Triplet<Real>(i,j,v));
     }
 
     inline void add( Index , Index , double ) override {}
@@ -136,15 +137,22 @@ public:
 
         ProjectMatrixVisitor(&accessor).execute(ctx);
 
+        m_P.resize(m_rowSize,m_colSize);
+        m_P.setFromTriplets(m_setVal.begin(),m_setVal.end());
+
         m_needRebuild = false;
     }
 
+    Eigen::SparseMatrix<Real,Eigen::RowMajor> & getMatrix() {
+        return m_P;
+    }
 
 private :
     unsigned m_rowSize,m_colSize;
     helper::vector<int> & m_clearCols;
     helper::vector<int> & m_clearRows;
-    helper::vector<Eigen::Triplet<Real>> m_setValId;
+    helper::vector<Eigen::Triplet<Real>> m_setVal;
+    Eigen::SparseMatrix<Real,Eigen::RowMajor> m_P;
     bool m_needRebuild;
 };
 
@@ -187,8 +195,10 @@ public:
     void buildMatrix() override {
         LocalIncomingSparseMatrix<VecReal,VecInt>::doCreateVisitor(m_matrices,this->getContext());
 
-        if (m_projectionMatrix.needRebuild())
+        if (m_projectionMatrix.needRebuild()) {
+            m_projectionMatrix.resize(this->m_globalSize,this->m_globalSize);
             m_projectionMatrix.buildMatrix(this->m_stateAccessor,this->getContext());
+        }
 
         for (unsigned i=0;i<m_matrices.size();i++) {
             if (m_matrices[i]->colSize() == 0 || m_matrices[i]->rowSize() == 0) {
@@ -198,26 +208,10 @@ public:
                 m_matrices[i]->fastReBuild();
             }
         }
-
-//        sofa::helper::AdvancedTimer::stepNext ("collect", "project");
-
-//        ProjectMatrixVisitor(&accessor).execute(this->getContext());
-
-//        sofa::helper::AdvancedTimer::stepNext ("project", "pattern");
-
-//        m_matrix.rebuildPatternAccess();
-//        sofa::helper::AdvancedTimer::stepNext ("pattern", "compress");
-//        for (unsigned i=0;i<m_compressedValues.size();i++) m_toCompress.push_back(i);
-//        compress();
-
-//        sofa::helper::AdvancedTimer::stepEnd("compress");*/
-
-
     }
 
     typename CompressedMatrix<Real>::SPtr getCompressedMatrix(const core::MechanicalParams * mparams) {
-        M_global.resize(0,0);
-        M_global.resize(this->m_globalSize,this->m_globalSize);
+        M_global = m_projectionMatrix.getMatrix();
 
         for (unsigned i=0;i<m_matrices.size();i++) {
             Eigen::Map< Eigen::SparseMatrix<Real,Eigen::RowMajor> > map(m_matrices[i]->colSize(),
@@ -282,12 +276,11 @@ public:
         TReal * x_ptr = X->data();
         const TReal * b_ptr = B->data();
 
-        if (! acc) {
-            for (unsigned i=0;i<this->m_globalSize;i++) x_ptr[i] = 0;
-        }
-
         Eigen::Map<typename IncomingEigenType<TReal>::Vector> ex(x_ptr,this->m_globalSize);
         Eigen::Map<typename IncomingEigenType<TReal>::Vector> eb((TReal*) b_ptr,this->m_globalSize);
+
+        if (acc) ex += this->m_projectionMatrix.getMatrix() * eb;
+        else ex = this->m_projectionMatrix.getMatrix() * eb;
 
         for (unsigned i=0;i<this->m_matrices.size();i++) {
             Eigen::Map< Eigen::SparseMatrix<Real,Eigen::RowMajor> > M(this->m_matrices[i]->colSize(),
