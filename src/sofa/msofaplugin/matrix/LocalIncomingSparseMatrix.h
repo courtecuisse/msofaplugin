@@ -54,8 +54,6 @@ public:
     void clear() {
         m_sparseIndices.clear();
         m_sparseValuesVec.clear();
-        m_clearCols.clear();
-        m_clearRows.clear();
     }
 
     void set(Index , Index , double ) override {}
@@ -91,36 +89,19 @@ public:
         m_sparseValuesVec.push_back(M[2][2]);
     }
 
-    void clearRow(Index i) override {
-        m_clearRows.push_back(i);
-    }
+    void clearRow(Index ) override {}
 
-    void clearCol(Index j) override {
-        m_clearCols.push_back(j);
-    }
+    void clearCol(Index ) override {}
 
-    void clearRowCol(Index i) override {
-        clearCol(i); // first delete the comun as it uses row values
-        clearRow(i);
-    }
+    void clearRowCol(Index ) override {}
 
-    void clearRows(Index imin, Index imax) override {
-        for(Index i=imin; i<imax; i++)
-            clearRow(i);
-    }
+    void clearRows(Index , Index ) override {}
 
-    void clearCols(Index imin, Index imax) override {
-        for(Index i=imin; i<imax; i++)
-            clearCol(i);
-    }
+    void clearCols(Index , Index ) override {}
 
-    void clearRowsCols(Index imin, Index imax) override {
-        for(Index i=imin; i<imax; i++) {
-            clearRowCol(i);
-        }
-    }
+    void clearRowsCols(Index , Index ) override {}
 
-    void inline rebuildPatternAccess() {
+    void inline rebuildPatternAccess(helper::vector<int> & clearCols, helper::vector<int> & clearRows) {
         std::vector<int> countvec;
 
         std::vector<int> tmp_colptr;//CRS format
@@ -152,7 +133,7 @@ public:
         }
 
         //clear the columns set the count values to 0
-        for (unsigned i=0;i<m_clearCols.size();i++) countvec[m_clearCols[i]] = 0;
+        for (unsigned i=0;i<clearCols.size();i++) countvec[clearCols[i]] = 0;
 
         tmp_tran_colptr[0] = 0;
         for (int j=0;j<m_colSize;j++) tmp_tran_colptr[j+1] = tmp_tran_colptr[j] + countvec[j];
@@ -163,7 +144,7 @@ public:
         for (unsigned i=0;i<tmp_nnz;i++) {
             unsigned col = m_sparseIndices[i].col;
 
-            unsigned write_id = tmp_tran_colptr[col] + countvec[col];
+            int write_id = tmp_tran_colptr[col] + countvec[col];
             if (write_id>=tmp_tran_colptr[col+1]) continue; //skip clear columns
 
             unsigned row = m_sparseIndices[i].row;
@@ -181,14 +162,14 @@ public:
 
         //Compute the transpose count number of values per lines
         for (unsigned j=0;j<m_colSize;j++) {
-            for (unsigned i=tmp_tran_colptr[j];i<tmp_tran_colptr[j+1];i++) {
+            for (int i=tmp_tran_colptr[j];i<tmp_tran_colptr[j+1];i++) {
                 int row = tmp_tran_rowind[i];
                 countvec[row]++;
             }
         }
 
         //clear the columns set the count values to 0
-        for (unsigned i=0;i<m_clearRows.size();i++) countvec[m_clearRows[i]] = 0;
+        for (unsigned i=0;i<clearRows.size();i++) countvec[clearRows[i]] = 0;
 
         tmp_colptr[0] = 0;
         for (int j=0;j<m_rowSize;j++) tmp_colptr[j+1] = tmp_colptr[j] + countvec[j];
@@ -231,6 +212,7 @@ public:
 
         valptr.push_back(tmp_colptr[m_rowSize]);
 
+        std::cout << "END MAPPING" << std::endl;
         //Build the mapping
         m_mapping.clear();
         //by default all the values will be sumed to the last value in the m_sparseValuesVec, we initialize the vector with the last index of the vector (size+1)
@@ -261,8 +243,6 @@ private :
     VecReal & m_values;
 
     VecInt & m_mapping;
-
-    helper::vector<int> m_clearCols,m_clearRows;
 };
 
 template<class VecReal,class VecInt>
@@ -388,7 +368,7 @@ public:
         m_colSize = c;
     }
 
-    inline void buildMatrix(std::vector<BaseStateAccessor::SPtr> & vacc) {
+    inline void buildMatrix(std::vector<BaseStateAccessor::SPtr> & vacc,helper::vector<int> & clearCols,helper::vector<int> & clearRows) {
         m_buildingMatrix.clear();
 
         m_accessor.setGlobalMatrix(&m_buildingMatrix);
@@ -399,7 +379,7 @@ public:
 
         m_builder->build(&m_accessor);
 
-        m_buildingMatrix.rebuildPatternAccess();
+        m_buildingMatrix.rebuildPatternAccess(clearCols,clearRows);
     }
 
     inline void fastReBuild() {

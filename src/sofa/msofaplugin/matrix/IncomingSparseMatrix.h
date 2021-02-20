@@ -37,6 +37,117 @@ public:
     Eigen::SparseMatrix<Real,Eigen::RowMajor> & m_matrix;
 };
 
+
+
+template<class Real>
+class ProjectIncomingMatrix : public defaulttype::BaseMatrix {
+public:
+    typedef defaulttype::BaseMatrix::Index Index;
+
+    ProjectIncomingMatrix(helper::vector<int> & clearCols, helper::vector<int> & clearRows)
+    : m_clearCols(clearCols)
+    , m_clearRows(clearRows)
+    , m_needRebuild(true)
+    {}
+
+    Index rowSize(void) const override { return m_rowSize; }
+
+    Index colSize(void) const override { return m_colSize;}
+
+    SReal element(Index , Index ) const override { return 0.0; }
+
+    void resize(Index r, Index c) {
+        m_rowSize = r;
+        m_colSize = c;
+    }
+
+    void clear() {
+        m_clearCols.clear();
+        m_clearRows.clear();
+        m_setValId.clear();
+    }
+
+    void set(Index i, Index j, double v) override {
+        m_setValId.push_back(Eigen::Triplet<Real>(i,j,v));
+    }
+
+    inline void add( Index , Index , double ) override {}
+
+    void clearRow(Index i) override { m_clearRows.push_back(i); }
+
+    void clearCol(Index j) override { m_clearCols.push_back(j); }
+
+    void clearRowCol(Index i) override {
+        clearCol(i);
+        clearRow(i);
+    }
+
+    void clearRows(Index imin, Index imax) override {
+        for(Index i=imin; i<imax; i++)
+            clearRow(i);
+    }
+
+    void clearCols(Index imin, Index imax) override {
+        for(Index i=imin; i<imax; i++)
+            clearCol(i);
+    }
+
+    void clearRowsCols(Index imin, Index imax) override {
+        for(Index i=imin; i<imax; i++) {
+            clearRowCol(i);
+        }
+    }
+
+    bool needRebuild() {
+        return m_needRebuild;
+    }
+
+    void buildMatrix(std::vector<BaseStateAccessor::SPtr> & vacc, core::objectmodel::BaseContext * ctx) {
+        class ProjectMatrixVisitor : public simulation::MechanicalVisitor {
+        public:
+
+            ProjectMatrixVisitor(component::linearsolver::DefaultMultiMatrixAccessor * mA)
+            : simulation::MechanicalVisitor(core::MechanicalParams::defaultInstance())
+            , m_accessor(mA) {}
+
+            const char* getClassName() const override { return "ProjectMatrixVisitor"; }
+
+            Result fwdProjectiveConstraintSet(simulation::Node* /*node*/, core::behavior::BaseProjectiveConstraintSet * c) override {
+                c->applyConstraint(core::MechanicalParams::defaultInstance(), m_accessor);
+
+                return RESULT_CONTINUE;
+            }
+
+            bool stopAtMechanicalMapping(simulation::Node* /*node*/, core::BaseMapping* map) override {
+                return !map->areMatricesMapped();
+            }
+        private:
+            component::linearsolver::DefaultMultiMatrixAccessor * m_accessor;
+        };
+
+        clear();
+
+        component::linearsolver::DefaultMultiMatrixAccessor accessor;
+        accessor.setGlobalMatrix(this);
+        accessor.setupMatrices();
+
+        for (unsigned i=0;i<vacc.size();i++)
+            accessor.addMechanicalState(vacc[i]->getState());
+
+        ProjectMatrixVisitor(&accessor).execute(ctx);
+
+        m_needRebuild = false;
+    }
+
+
+private :
+    unsigned m_rowSize,m_colSize;
+    helper::vector<int> & m_clearCols;
+    helper::vector<int> & m_clearRows;
+    helper::vector<Eigen::Triplet<Real>> m_setValId;
+    bool m_needRebuild;
+};
+
 template<class VecReal,class VecInt>
 class BaseIncomingSparseMatrix : public CompressableMatrix<VecReal,VecInt> {
 public:
@@ -71,16 +182,18 @@ public:
         unsigned m_rowSize,m_colSize;
     };
 
-    virtual void clear() {
-    }
+    virtual void clear() {}
 
     void buildMatrix() override {
         LocalIncomingSparseMatrix<VecReal,VecInt>::doCreateVisitor(m_matrices,this->getContext());
 
+        if (m_projectionMatrix.needRebuild())
+            m_projectionMatrix.buildMatrix(this->m_stateAccessor,this->getContext());
+
         for (unsigned i=0;i<m_matrices.size();i++) {
             if (m_matrices[i]->colSize() == 0 || m_matrices[i]->rowSize() == 0) {
                 m_matrices[i]->resize(this->m_globalSize,this->m_globalSize);
-                m_matrices[i]->buildMatrix(this->m_stateAccessor);
+                m_matrices[i]->buildMatrix(this->m_stateAccessor,m_clearCols,m_clearRows);
             } else {
                 m_matrices[i]->fastReBuild();
             }
@@ -128,10 +241,16 @@ public:
         return m_rowSize;
     }
 
+    BaseIncomingSparseMatrix()
+    : m_projectionMatrix(m_clearCols,m_clearRows) {}
+
 protected:
     unsigned m_rowSize,m_colSize;
     std::vector<typename LocalIncomingSparseMatrix<VecReal,VecInt>::SPtr> m_matrices;
     Eigen::SparseMatrix<Real,Eigen::RowMajor> M_global;
+    helper::vector<int> m_clearCols,m_clearRows;
+    ProjectIncomingMatrix<Real> m_projectionMatrix;
+
 };
 
 template<class Real>
