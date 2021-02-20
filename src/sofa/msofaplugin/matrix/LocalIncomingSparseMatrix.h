@@ -32,21 +32,17 @@ public:
         unsigned col;
     };
 
-    BuildingIncomingMatrix(unsigned & r,unsigned & c)
+    BuildingIncomingMatrix(unsigned & r,unsigned & c,VecInt & colptr,VecInt & rowind,VecReal & values,VecInt & mapping)
     : m_rowSize(r)
-    , m_colSize(c) {}
+    , m_colSize(c)
+    , m_colptr(colptr)
+    , m_rowind(rowind)
+    , m_values(values)
+    , m_mapping(mapping) {}
 
-    Index rowSize(void) const override {
-        return m_rowSize;
-    }
+    Index rowSize(void) const override { return m_rowSize; }
 
-    Index colSize(void) const override {
-        return m_colSize;
-    }
-
-    Index nnz(void) const {
-        return m_nnz;
-    }
+    Index colSize(void) const override { return m_colSize; }
 
     SReal element(Index /*i*/, Index /*j*/) const override { return 0.0; }
 
@@ -56,53 +52,43 @@ public:
     }
 
     void clear() {
-        m_writeId = 0;
+        m_sparseIndices.clear();
+        m_sparseValuesVec.clear();
         m_clearCols.clear();
         m_clearRows.clear();
-        m_setValId.clear();
     }
 
-    void set(Index i, Index j, double v) override {
-        m_setValId.push_back(m_writeId);
-        add(i,j,v);
-    }
+    void set(Index , Index , double ) override {}
 
     inline void add( Index i, Index j, double v ) override {
-        m_sparseIndices.resize(m_writeId+1);
-        m_sparseIndices[m_writeId] = MatrixCoord(i,j);
-
-        m_sparseValuesVec.resize(m_writeId+1);
-        m_sparseValuesVec[m_writeId] = v;
-
-        m_writeId++;
+        m_sparseIndices.push_back(MatrixCoord(i,j));
+        m_sparseValuesVec.push_back(v);
     }
 
     inline void add(Index i, Index j, const defaulttype::Mat3x3d & M) override {
-        m_sparseIndices.resize(m_writeId+9);
-        m_sparseIndices[m_writeId+0] = MatrixCoord(i+0,j+0);
-        m_sparseIndices[m_writeId+1] = MatrixCoord(i+0,j+1);
-        m_sparseIndices[m_writeId+2] = MatrixCoord(i+0,j+2);
+        m_sparseIndices.push_back(MatrixCoord(i+0,j+0));
+        m_sparseIndices.push_back(MatrixCoord(i+0,j+1));
+        m_sparseIndices.push_back(MatrixCoord(i+0,j+2));
 
-        m_sparseIndices[m_writeId+3] = MatrixCoord(i+1,j+0);
-        m_sparseIndices[m_writeId+4] = MatrixCoord(i+1,j+1);
-        m_sparseIndices[m_writeId+5] = MatrixCoord(i+1,j+2);
+        m_sparseIndices.push_back(MatrixCoord(i+1,j+0));
+        m_sparseIndices.push_back(MatrixCoord(i+1,j+1));
+        m_sparseIndices.push_back(MatrixCoord(i+1,j+2));
 
-        m_sparseIndices[m_writeId+6] = MatrixCoord(i+2,j+0);
-        m_sparseIndices[m_writeId+7] = MatrixCoord(i+2,j+1);
-        m_sparseIndices[m_writeId+8] = MatrixCoord(i+2,j+2);
+        m_sparseIndices.push_back(MatrixCoord(i+2,j+0));
+        m_sparseIndices.push_back(MatrixCoord(i+2,j+1));
+        m_sparseIndices.push_back(MatrixCoord(i+2,j+2));
 
-        m_sparseValuesVec.fastResize(m_writeId+9);
-        m_sparseValuesVec[m_writeId++] = M[0][0];
-        m_sparseValuesVec[m_writeId++] = M[0][1];
-        m_sparseValuesVec[m_writeId++] = M[0][2];
+        m_sparseValuesVec.push_back(M[0][0]);
+        m_sparseValuesVec.push_back(M[0][1]);
+        m_sparseValuesVec.push_back(M[0][2]);
 
-        m_sparseValuesVec[m_writeId++] = M[1][0];
-        m_sparseValuesVec[m_writeId++] = M[1][1];
-        m_sparseValuesVec[m_writeId++] = M[1][2];
+        m_sparseValuesVec.push_back(M[1][0]);
+        m_sparseValuesVec.push_back(M[1][1]);
+        m_sparseValuesVec.push_back(M[1][2]);
 
-        m_sparseValuesVec[m_writeId++] = M[2][0];
-        m_sparseValuesVec[m_writeId++] = M[2][1];
-        m_sparseValuesVec[m_writeId++] = M[2][2];
+        m_sparseValuesVec.push_back(M[2][0]);
+        m_sparseValuesVec.push_back(M[2][1]);
+        m_sparseValuesVec.push_back(M[2][2]);
     }
 
     void clearRow(Index i) override {
@@ -144,7 +130,11 @@ public:
         std::vector<int> tmp_tran_rowind;
         std::vector<int> tmp_tran_sortid;//index of the incoming values in the transposed format
 
-        unsigned tmp_nnz = m_writeId;
+        std::vector<int> valptr;// start and end point of each sum values in the CSR m_values vector
+        std::vector<int> sortid;// corresponding indices in the m_sparseIndices vector
+
+
+        unsigned tmp_nnz = m_sparseValuesVec.size();
 
         tmp_tran_colptr.resize(m_colSize+1);
         tmp_tran_rowind.resize(tmp_nnz);
@@ -152,8 +142,7 @@ public:
 
         tmp_colptr.resize(m_rowSize+1);
         tmp_rowind.resize(tmp_nnz);
-        m_sortid.resize(tmp_nnz);
-
+        sortid.resize(tmp_nnz);
 
         //First we build the uncollapsed transposed matrix
         countvec.resize(m_colSize);
@@ -201,12 +190,6 @@ public:
         //clear the columns set the count values to 0
         for (unsigned i=0;i<m_clearRows.size();i++) countvec[m_clearRows[i]] = 0;
 
-        for (unsigned i=0;i<m_setValId.size();i++) {
-            int id=m_setValId[i];
-            int row = m_sparseIndices[id].row;
-            countvec[row] = 1; // only one value can be set per line
-        }
-
         tmp_colptr[0] = 0;
         for (int j=0;j<m_rowSize;j++) tmp_colptr[j+1] = tmp_colptr[j] + countvec[j];
 
@@ -221,20 +204,12 @@ public:
                 if (write_id>=tmp_colptr[row+1]) continue; //skip clear rows
 
                 tmp_rowind[write_id] = j; // we are building the column j
-                m_sortid[write_id] = tmp_tran_sortid[i]; // build the sortidvector
+                sortid[write_id] = tmp_tran_sortid[i]; // build the sortidvector
 
                 countvec[row]++;
             }
         }
 
-        for (unsigned i=0;i<m_setValId.size();i++) {
-            int id=m_setValId[i];
-            int row = m_sparseIndices[id].row;
-            tmp_rowind[tmp_colptr[row]] = m_sparseIndices[id].col;
-            m_sortid[tmp_colptr[row]] = id;
-        }
-
-        m_valptr.clear();
         m_rowind.clear();
         m_colptr.clear();
         m_colptr.push_back(0);
@@ -247,61 +222,118 @@ public:
                 if (tmp_rowind[i] != newcol) {
                     newcol = tmp_rowind[i];
                     m_rowind.push_back(newcol);
-                    m_valptr.push_back(i);
+                    valptr.push_back(i);
                 }
             }
 
             m_colptr.push_back(m_rowind.size());
         }
 
-        m_valptr.push_back(tmp_colptr[m_rowSize]);
+        valptr.push_back(tmp_colptr[m_rowSize]);
 
-        m_nnz = m_colptr[m_rowSize];
+        //Build the mapping
+        m_mapping.clear();
+        //by default all the values will be sumed to the last value in the m_sparseValuesVec, we initialize the vector with the last index of the vector (size+1)
+        m_mapping.resize(m_sparseValuesVec.size()+1,m_sparseValuesVec.size());
+        for (unsigned i=0;i<m_rowind.size();i++) {
+            for (unsigned j=valptr[i];j<valptr[i+1];j++) {
+                m_mapping[sortid[j]] = i;
+            }
+        }
 
         //Build the values
         m_values.clear();
         m_values.resize(m_rowind.size());
-
-        for (unsigned i=0;i<m_rowind.size();i++) {
-            for (unsigned j=m_valptr[i];j<m_valptr[i+1];j++) {
-                const int id = m_sortid[j];
-                m_values[i] += m_sparseValuesVec[id];
-            }
+        for (unsigned i=0;i<m_sparseValuesVec.size();i++) {
+            m_values[m_mapping[i]] += m_sparseValuesVec[i];
         }
     }
 
-    VecInt & getColptr() {
-        return m_colptr;
+private :
+    VecReal m_sparseValuesVec; // incoming new values
+    helper::vector<MatrixCoord> m_sparseIndices; // incoming vector of coordinated used to check the consistency of the structure
+
+    unsigned & m_colSize;
+    unsigned & m_rowSize;
+
+    VecInt & m_colptr;//CRS format
+    VecInt & m_rowind;
+    VecReal & m_values;
+
+    VecInt & m_mapping;
+
+    helper::vector<int> m_clearCols,m_clearRows;
+};
+
+template<class VecReal,class VecInt>
+class MappedIncomingMatrix : public defaulttype::BaseMatrix {
+public:
+    typedef typename RealType<VecReal>::Real Real;
+    typedef defaulttype::BaseMatrix::Index Index;
+
+    MappedIncomingMatrix(unsigned & r,unsigned & c,VecReal & values,VecInt & mapping)
+    : m_rowSize(r)
+    , m_colSize(c)
+    , m_values(values)
+    , m_mapping(mapping) {}
+
+    Index rowSize(void) const override { return m_rowSize; }
+
+    Index colSize(void) const override { return m_colSize; }
+
+    SReal element(Index /*i*/, Index /*j*/) const override { return 0.0; }
+
+    void resize(Index nbRow, Index nbCol) {
+        m_rowSize = nbRow;
+        m_colSize = nbCol;
     }
 
-    VecInt & getRowind() {
-        return m_rowind;
+    void clear() {
+        m_writeId=0;
+        unsigned nnz = m_values.size();
+        m_values.clear();
+        m_values.resize(nnz);
     }
 
-    VecReal & getValues() {
-        return m_values;
+    void set(Index , Index , double ) override {}
+
+    inline void add( Index , Index , double v ) override {
+        m_values[m_mapping[m_writeId++]] += v;
     }
 
-    int getNnz(){
-        return m_nnz;
+    inline void add(Index , Index , const defaulttype::Mat3x3d & M) override {
+        m_values[m_mapping[m_writeId++]] += M[0][0];
+        m_values[m_mapping[m_writeId++]] += M[0][1];
+        m_values[m_mapping[m_writeId++]] += M[0][2];
+
+        m_values[m_mapping[m_writeId++]] += M[1][0];
+        m_values[m_mapping[m_writeId++]] += M[1][1];
+        m_values[m_mapping[m_writeId++]] += M[1][2];
+
+        m_values[m_mapping[m_writeId++]] += M[2][0];
+        m_values[m_mapping[m_writeId++]] += M[2][1];
+        m_values[m_mapping[m_writeId++]] += M[2][2];
     }
+
+    void clearRow(Index ) override {}
+
+    void clearCol(Index ) override {}
+
+    void clearRowCol(Index ) override {}
+
+    void clearRows(Index , Index ) override {}
+
+    void clearCols(Index , Index ) override {}
+
+    void clearRowsCols(Index , Index ) override {}
 
 private :
     unsigned & m_colSize;
     unsigned & m_rowSize;
-    unsigned m_nnz,m_writeId;
+    unsigned m_writeId;
 
-    VecReal m_sparseValuesVec; // incoming new values
-    helper::vector<MatrixCoord> m_sparseIndices; // incoming vector of coordinated used to check the consistency of the structure
-
-    VecInt m_colptr;//CRS format
-    VecInt m_rowind;
-    VecReal m_values;
-
-    VecInt m_valptr;// start and end point of each sum values in the CSR m_values vector
-    VecInt m_sortid;// corresponding indices in the m_sparseIndices vector
-
-    helper::vector<int> m_clearCols,m_clearRows,m_setValId;
+    VecReal & m_values;
+    VecInt & m_mapping;
 };
 
 template<class VecReal, class VecInt>
@@ -316,53 +348,62 @@ public:
     }
 
     void buildMatrix(std::vector<BaseStateAccessor::SPtr> & vacc) {
-        m_buildingMatrix.clear();
+        if (m_mapping.empty()) {
+            m_buildingMatrix.clear();
 
-        component::linearsolver::DefaultMultiMatrixAccessor accessor;
-        accessor.setGlobalMatrix(&m_buildingMatrix);
-        accessor.setupMatrices();
+            component::linearsolver::DefaultMultiMatrixAccessor accessor;
+            accessor.setGlobalMatrix(&m_buildingMatrix);
+            accessor.setupMatrices();
 
-        for (unsigned i=0;i<vacc.size();i++)
-            accessor.addMechanicalState(vacc[i]->getState());
+            for (unsigned i=0;i<vacc.size();i++)
+                accessor.addMechanicalState(vacc[i]->getState());
 
-        doBuild(&accessor);
+            doBuild(&accessor);
 
-        m_buildingMatrix.rebuildPatternAccess();
+            m_buildingMatrix.rebuildPatternAccess();
+        } else {
+            m_mappedMatrix.clear();
+
+            component::linearsolver::DefaultMultiMatrixAccessor accessor;
+            accessor.setGlobalMatrix(&m_mappedMatrix);
+            accessor.setupMatrices();
+
+            for (unsigned i=0;i<vacc.size();i++)
+                accessor.addMechanicalState(vacc[i]->getState());
+
+            doBuild(&accessor);
+        }
     }
 
-    unsigned rowSize() {
-        return m_rowSize;
-    }
+    unsigned rowSize() { return m_rowSize; }
 
-    unsigned colSize() {
-        return m_colSize;
-    }
+    unsigned colSize() { return m_colSize; }
 
-    unsigned getNnz() {
-        return m_buildingMatrix.getNnz();
-    }
+    unsigned getNnz() { return m_rowind.size(); }
 
-    VecInt & getColptr() {
-        return m_buildingMatrix.getColptr();
-    }
+    VecInt & getColptr() { return m_colptr; }
 
-    VecInt & getRowind() {
-        return m_buildingMatrix.getRowind();
-    }
+    VecInt & getRowind() { return m_rowind; }
 
-    VecReal & getValues() {
-        return m_buildingMatrix.getValues();
-    }
+    VecReal & getValues() { return m_values; }
 
 protected:
     BaseLocalIncomingSparseMatrix()
-    : m_buildingMatrix(m_rowSize,m_colSize) {}
+    : m_buildingMatrix(m_rowSize,m_colSize,m_colptr,m_rowind,m_values,m_mapping)
+    , m_mappedMatrix(m_rowSize,m_colSize,m_values,m_mapping) {}
 
     virtual void doBuild(component::linearsolver::DefaultMultiMatrixAccessor * accessor) = 0;
 
     core::MechanicalParams m_params;
     unsigned m_rowSize,m_colSize;
     BuildingIncomingMatrix<VecReal,VecInt> m_buildingMatrix;
+    MappedIncomingMatrix<VecReal,VecInt> m_mappedMatrix;
+
+    VecInt m_colptr;//CRS format
+    VecInt m_rowind;
+    VecReal m_values;
+
+    VecInt m_mapping;
 };
 
 template<class VecReal, class VecInt>
