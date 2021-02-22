@@ -47,7 +47,6 @@ public:
     ProjectIncomingMatrix(helper::vector<int> & clearCols, helper::vector<int> & clearRows)
     : m_clearCols(clearCols)
     , m_clearRows(clearRows)
-    , m_needRebuild(true)
     {}
 
     Index rowSize(void) const override { return m_rowSize; }
@@ -65,7 +64,6 @@ public:
         m_clearCols.clear();
         m_clearRows.clear();
         m_setVal.clear();
-        m_needRebuild = true;
     }
 
     void set(Index i, Index j, double v) override {
@@ -97,10 +95,6 @@ public:
         for(Index i=imin; i<imax; i++) {
             clearRowCol(i);
         }
-    }
-
-    bool needRebuild() {
-        return m_needRebuild;
     }
 
     void buildMatrix(std::vector<BaseStateAccessor::SPtr> & vacc, core::objectmodel::BaseContext * ctx) {
@@ -139,8 +133,6 @@ public:
 
         m_P.resize(m_rowSize,m_colSize);
         m_P.setFromTriplets(m_setVal.begin(),m_setVal.end());
-
-        m_needRebuild = false;
     }
 
     Eigen::SparseMatrix<Real,Eigen::RowMajor> & getMatrix() {
@@ -153,7 +145,6 @@ private :
     helper::vector<int> & m_clearRows;
     helper::vector<Eigen::Triplet<Real>> m_setVal;
     Eigen::SparseMatrix<Real,Eigen::RowMajor> m_P;
-    bool m_needRebuild;
 };
 
 template<class VecReal,class VecInt>
@@ -195,13 +186,19 @@ public:
     void buildMatrix() override {
         LocalIncomingSparseMatrix<VecReal,VecInt>::doCreateVisitor(m_matrices,this->getContext());
 
-        if (m_projectionMatrix.needRebuild()) {
+        if (m_projectionMatrix.colSize() != this->m_globalSize ||
+            m_projectionMatrix.rowSize() != this->m_globalSize) {
+
+            m_projectionMatrix.clear();
             m_projectionMatrix.resize(this->m_globalSize,this->m_globalSize);
             m_projectionMatrix.buildMatrix(this->m_stateAccessor,this->getContext());
         }
 
         for (unsigned i=0;i<m_matrices.size();i++) {
-            if (m_matrices[i]->colSize() == 0 || m_matrices[i]->rowSize() == 0) {
+            if (m_matrices[i]->colSize() != this->m_globalSize ||
+                m_matrices[i]->rowSize() != this->m_globalSize) {
+
+                m_matrices[i]->clear();
                 m_matrices[i]->resize(this->m_globalSize,this->m_globalSize);
                 m_matrices[i]->buildMatrix(this->m_stateAccessor,m_clearCols,m_clearRows);
             } else {
@@ -237,6 +234,15 @@ public:
 
     BaseIncomingSparseMatrix()
     : m_projectionMatrix(m_clearCols,m_clearRows) {}
+
+
+    virtual std::string getTemplateName() const override {
+        return templateName(this);
+    }
+
+    static std::string templateName(const BaseIncomingSparseMatrix<VecReal,VecInt>* = NULL) {
+        return realName(VecReal().data());
+    }
 
 protected:
     unsigned m_rowSize,m_colSize;

@@ -32,7 +32,7 @@ BaseStateAccessor::SPtr BaseStateAccessor::create(core::behavior::BaseMechanical
     }
 
     sofa::core::objectmodel::BaseObjectDescription arg;
-    arg.setAttribute("type",std::string("StateVectorOperator"));
+    arg.setAttribute("type",std::string("StateAccessor"));
     arg.setAttribute("template",state->getTemplateName());
     arg.setAttribute("name",state->getName() + "_MV");
     arg.setAttribute("mstate",std::string("@")+state->getPathName());

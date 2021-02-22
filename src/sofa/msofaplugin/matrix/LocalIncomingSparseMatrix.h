@@ -54,6 +54,12 @@ public:
     void clear() {
         m_sparseIndices.clear();
         m_sparseValuesVec.clear();
+        m_colptr.clear();
+        m_rowind.clear();
+        m_values.clear();
+        m_mapping.clear();
+        m_rowSize = 0;
+        m_colSize = 0;
     }
 
     void set(Index , Index , double ) override {}
@@ -113,7 +119,6 @@ public:
 
         std::vector<int> valptr;// start and end point of each sum values in the CSR m_values vector
         std::vector<int> sortid;// corresponding indices in the m_sparseIndices vector
-
 
         unsigned tmp_nnz = m_sparseValuesVec.size();
 
@@ -315,6 +320,14 @@ private :
     Real * m_valuesPtr; // this pointer may be accessed on GPU
 };
 
+template<class Real>
+static std::string realName(const Real * );
+
+template<>
+std::string realName<float>(const float * ) { return "float";  }
+
+template<>
+std::string realName<double>(const double * ) { return "double";  }
 
 
 template<class VecReal, class VecInt>
@@ -362,14 +375,17 @@ public:
 
     SOFA_CLASS(SOFA_TEMPLATE2(LocalIncomingSparseMatrix,VecReal,VecInt),sofa::core::objectmodel::BaseObject);
 
+    void clear() {
+        m_buildingMatrix.clear();
+    }
+
     void resize(unsigned r,unsigned c) {
         m_rowSize = r;
         m_colSize = c;
     }
 
     inline void buildMatrix(std::vector<BaseStateAccessor::SPtr> & vacc,helper::vector<int> & clearCols,helper::vector<int> & clearRows) {
-        m_buildingMatrix.clear();
-
+        m_accessor.clear();
         m_accessor.setGlobalMatrix(&m_buildingMatrix);
         m_accessor.setupMatrices();
 
@@ -423,7 +439,7 @@ public:
 
                 sofa::core::objectmodel::BaseObjectDescription arg;
                 arg.setAttribute("type",std::string("LocalIncomingSparseMatrix"));
-                arg.setAttribute("template",typeid(VecReal).name());
+                arg.setAttribute("template",realName(VecReal().data()));
                 arg.setAttribute("name",obj->getName() + "_LIM");
 
                 sofa::core::objectmodel::BaseObject::SPtr newobj = sofa::core::ObjectFactory::getInstance()->createObject(obj->getContext(), &arg);
@@ -465,6 +481,14 @@ public:
 
     void setBuilder(BaseInternalBuilder * b) { m_builder = typename BaseInternalBuilder::UPtr(b); }
 
+    virtual std::string getTemplateName() const override {
+        return templateName(this);
+    }
+
+    static std::string templateName(const LocalIncomingSparseMatrix<VecReal,VecInt>* = NULL) {
+        return realName(VecReal().data());
+    }
+
 protected:
     LocalIncomingSparseMatrix()
     : m_buildingMatrix(m_rowSize,m_colSize,m_colptr,m_rowind,m_values,m_mapping)
@@ -485,5 +509,7 @@ protected:
     component::linearsolver::DefaultMultiMatrixAccessor m_accessor;
     typename BaseInternalBuilder::UPtr m_builder;
 };
+
+
 
 }

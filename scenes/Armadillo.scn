@@ -12,8 +12,8 @@
 	
 	<Node name="DeformArmadillo1">
 		<EulerImplicitSolver />
-		<MUnbuiltMatrix name="matrix" />
-<!-- 		<IncomingSparseMatrix name="matrix" template="double" /> -->
+<!-- 		<MUnbuiltMatrix name="matrix" /> -->
+		<IncomingSparseMatrix name="matrix" template="double" />
 		<MPCGLinearSolver name="solver" matrix="@matrix" iterations="100" />
 <!-- 		<CGLinearSolver name="solver" iterations="100" /> -->
 
