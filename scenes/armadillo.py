@@ -2,6 +2,7 @@ import sys
 import numpy as np
 import libsofaTerminal as sofa
 import scipy.sparse as sp
+import time
 
 #####SOFA
 sofa.open("Armadillo.scn")
@@ -36,10 +37,18 @@ def setRes(R):
 	#FEM=ROOT.getObject("DeformArmadillo1/FEM")
 	#FEM.handleTopologyChange()
 
-
-sofa.gui()
+A=time.perf_counter()
+for i in range(1, 100):
+	sofa.step()
+B=time.perf_counter()
+print("TIME =", B-A)
 
 setRes(1.2)
+A=time.perf_counter()
+for i in range(1, 100):
+	sofa.step()
+B=time.perf_counter()
+print("TIME =", B-A)
 
 sofa.gui()
 
