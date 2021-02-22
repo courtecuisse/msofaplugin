@@ -37,6 +37,8 @@ def setRes(R):
 	#FEM=ROOT.getObject("DeformArmadillo1/FEM")
 	#FEM.handleTopologyChange()
 
+sofa.gui()
+
 A=time.perf_counter()
 for i in range(1, 100):
 	sofa.step()
@@ -44,11 +46,13 @@ B=time.perf_counter()
 print("TIME =", B-A)
 
 setRes(1.2)
+sofa.gui()
+
 A=time.perf_counter()
 for i in range(1, 100):
 	sofa.step()
 B=time.perf_counter()
 print("TIME =", B-A)
 
-sofa.gui()
+
 
