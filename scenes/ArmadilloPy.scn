@@ -1,0 +1,139 @@
+<?xml version="1.0"?>
+
+<Node gravity="0 -10 0" dt="0.02" >
+        <RequiredPlugin pluginName='mSofaPlugin'/>
+        <RequiredPlugin pluginName='mSofaPlugin-private'/>
+        <RequiredPlugin pluginName='sofaTerminal'/>
+
+
+	<VisualStyle displayFlags="showVisualModels hideBehaviorModels hideCollisionModels hideMappings hideForceFields hideWireframe" />
+	<DefaultVisualManagerLoop />
+	
+	<Node name="RegularGrid" >
+		<SparseGrid name="HexaTop" cellWidth="0.7" fileTopology="mesh/Armadillo_simplified.obj" />
+		<TetrahedronSetTopologyContainer name="TetraContainer" />
+		<TetrahedronSetTopologyModifier name="Modifier"/>
+		<Hexa2TetraTopologicalMapping input="@HexaTop" output="@TetraContainer" swapping="false" />
+		
+		<MechanicalObject name="mstate" showObject="false" />
+		<BoxROI name="box" box="-2 7 -2   2 13 2" />
+	</Node>
+	
+	<Node name="DeformArmadillo1">
+                <EulerImplicitSolver />
+                <!--<MUnbuiltMatrix name="matrix" />-->
+                <IncomingSparseMatrix name="matrix" />
+                <MPCGLinearSolver name="solver" matrix="@matrix" iterations="100" />
+
+		<TetrahedronSetTopologyContainer name="Container" position="@../RegularGrid/HexaTop.position" tetrahedra="@../RegularGrid/TetraContainer.tetrahedra" />
+		<TetrahedronSetTopologyModifier name="Modifier"/>
+
+		<MechanicalObject name="mstate" showObject="false" />
+		<UniformMass totalMass="100" />
+		
+		<TetrahedronFEMForceField name="FEM" youngModulus="500" poissonRatio="0.4" />
+
+                <FixedConstraint name="fixed" indices="@../RegularGrid/box.indices" />
+		
+		<Node name="Surf">
+			<TriangleSetTopologyContainer name="Container" />
+			<TriangleSetTopologyModifier name="Modifier"/>
+			<Tetra2TriangleTopologicalMapping input="@../Container" output="@Container" flipNormals="false"/>
+			
+			<OglModel template="CudaVec3f" color="0.0 1.0 0.0 1.0" computeNormals="true" useVBO="true" />
+	
+			<IdentityMapping isMechanical="true"  mapForces="false" mapMasses="false" />
+		</Node>		
+	</Node>
+	
+        <Node name="DeformArmadillo2">
+                <EulerImplicitSolver />
+                <FullIncomingSparseMatrix name="matrix" />
+                <MPCGLinearSolver name="solver" matrix="@matrix" iterations="100" />
+
+                <TetrahedronSetTopologyContainer name="Container" position="@../RegularGrid/HexaTop.position" tetrahedra="@../RegularGrid/TetraContainer.tetrahedra" />
+                <TetrahedronSetTopologyModifier name="Modifier"/>
+
+                <MechanicalObject name="mstate" showObject="false" dx="15" />
+                <UniformMass totalMass="100" />
+
+                <TetrahedronFEMForceField name="FEM" youngModulus="500" poissonRatio="0.4" />
+
+                <FixedConstraint name="fixed" indices="@../RegularGrid/box.indices" />
+
+                <Node name="Surf">
+                        <TriangleSetTopologyContainer name="Container" />
+                        <TriangleSetTopologyModifier name="Modifier"/>
+                        <Tetra2TriangleTopologicalMapping input="@../Container" output="@Container" flipNormals="false"/>
+
+                        <OglModel template="CudaVec3f" color="1.0 0.0 0.0 1.0" computeNormals="true" useVBO="true" />
+
+                        <IdentityMapping isMechanical="true"  mapForces="false" mapMasses="false" />
+                </Node>
+        </Node>
+
+        <!--<Node name="DeformArmadillo2">
+                <EulerImplicitSolver solver="@solver" />
+		<CGLinearSolver name="solver" matrix="@matrix" iterations="100" />
+
+		<TetrahedronSetTopologyContainer name="Container" position="@../RegularGrid/HexaTop.position" tetrahedra="@../RegularGrid/TetraContainer.tetrahedra" />
+		<TetrahedronSetTopologyModifier name="Modifier"/>
+
+		<MechanicalObject name="mstate" showObject="false" dx="15" />
+		<UniformMass totalMass="100" />
+		
+		<TetrahedronFEMForceField name="FEM" youngModulus="500" poissonRatio="0.4" />
+
+		<FixedConstraint name="fixed" indices="@../RegularGrid/box.indices" />
+		
+		<Node name="Surf">
+			<TriangleSetTopologyContainer name="Container" />
+			<TriangleSetTopologyModifier name="Modifier"/>
+			<Tetra2TriangleTopologicalMapping input="@../Container" output="@Container" flipNormals="false"/>
+			
+			<OglModel template="CudaVec3f" color="1.0 0.0 0.0 1.0" computeNormals="true" useVBO="true" />
+	
+			<IdentityMapping isMechanical="true"  mapForces="false" mapMasses="false" />
+		</Node>		
+        </Node>-->
+	
+
+<PyInit script="
+import sys
+import numpy as np
+import scipy.sparse as sp
+import matplotlib.pyplot as plt
+from scipy.sparse.linalg import norm
+
+sofa.load('mSofaPluginBinding')
+root=sofa.root()
+S1=root.getObject('DeformArmadillo1/matrix')
+S2=root.getObject('DeformArmadillo2/matrix')
+
+def sofaToPythonMatrix(M):
+    C=M.colptr()
+    R=M.rowind()
+    V=M.values()
+
+    return sp.csr_matrix((V,R,C), shape=(M.rowSize(),M.colSize()));
+" />
+
+
+<PyStepEvent end="true" begin="false" script="
+A1=sofaToPythonMatrix(S1.getMatrix())
+A2=sofaToPythonMatrix(S2.getMatrix())
+#print(A2)
+RES=A2-A1
+
+print('NORM A1 = ',norm(A1))
+print('NORM A2 = ',norm(A2))
+print('NORM RES = ',norm(RES))
+
+
+#plt.spy(A1)
+#plt.show()
+" />
+
+<PyTerminal />
+
+</Node>
