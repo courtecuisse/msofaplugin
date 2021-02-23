@@ -169,7 +169,9 @@ public:
         : BaseStateSynchronizer(offset,size)
         , m_accessor(acc)
         , m_id(id)
-        , m_localVec(lv) {}
+        , m_localVec(lv) {
+            acc->sout << "Create A StateSynchronizer with id = " << id << acc->sendl;
+        }
 
         virtual void syncToState() {
             if (this->m_stateValid) return;
@@ -327,7 +329,9 @@ public:
 
     RawMechanicalVector(unsigned id, typename TStateAccessor<VecReal>::SPtr acc)
     : MechanicalVector<VecReal>(id)
-    , m_accessor(acc) {}
+    , m_accessor(acc) {
+        acc->sout << "Create A RawMechanicalVector with id = " << id << acc->sendl;
+    }
 
     void syncToState() const override  {}
 

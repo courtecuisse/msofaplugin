@@ -54,7 +54,9 @@ public:
         m_globalSize = 0;
         m_stateAccessor.clear();
         for (unsigned i=0;i<states.size();i++) {
-            m_stateAccessor.push_back(TStateAccessor<VecReal>::create(states[i]));
+            auto acc = TStateAccessor<VecReal>::create(states[i]);
+            acc->f_printLog.setValue(this->f_printLog.getValue());
+            m_stateAccessor.push_back(acc);
             m_globalSize += states[i]->getSize() * states[i]->getDerivDimension();
         }
 

@@ -1,5 +1,5 @@
 <Node name="Topology">
-	<SparseGrid name="Grid" cellWidth="0.7" fileTopology="mesh/Armadillo_simplified.obj" />
+	<SparseGridTopology name="Grid" cellWidth="0.7" fileTopology="mesh/Armadillo_simplified.obj" />
 	<TetrahedronSetTopologyContainer name="Container" position="@Grid.position" />
 	<TetrahedronSetTopologyModifier name="Modifier"/>
 	<Hexa2TetraTopologicalMapping name="Mapping" input="@Grid" output="@Container" swapping="false" />
