@@ -35,11 +35,15 @@ def setRes(NODE_NAME,RES):
 	return NPOINS
 
 def doTimer(R):
+	sofa.timer().activate()
 	NPOINTS=setRes("DeformArmadillo1", R)
 	A=time.perf_counter()
 	for i in range(1, 100):
 		sofa.step()
 	B=time.perf_counter()
+	print(sofa.timer().getTime("Simulation::animate"))
+	print(sofa.timer().getVal("PCG iterations"))
+	sofa.timer().clear()
 	return [NPOINTS, B-A]
 
 #####SOFA
@@ -67,4 +71,16 @@ print("TIME INCOMING NPTS=", P, " TIME =", T)
 [P,T] = doTimer(1.2)
 print("TIME INCOMING NPTS=", P, " TIME =", T)
 
+
+
+
+sofa.open("UnbuiltMatrix.scn")
+for i in range(1, 150):
+	sofa.step()
+
+#sofa.timer().print()
+
+
+#sofa.step()
+#sofa.timer().getTime("ComputeForce")
 
