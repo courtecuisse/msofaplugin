@@ -10,12 +10,12 @@
 
 	<Node name="DeformArmadillo1">
 		<EulerImplicitSolver />
-		<CudaFullIncomingSparseMatrix name="matrix" template="float" />
+		<MUnbuiltMatrix name="matrix" />
 		<MPCGLinearSolver name="solver" matrix="@matrix" iterations="100" />
 
 		<TetrahedronSetTopologyContainer name="Container" nbPoints="@../Topology/Container.nbPoints" position="@../Topology/Container.position" tetrahedra="@../Topology/Container.tetrahedra" points="@../Topology/Container.points"/>
 		
-		<MechanicalObject name="mstate" template="CudaVec3f" />
+		<MechanicalObject name="mstate" />
 		
 		<UniformMass name="mass" totalMass="100" indices="@Container.points" />		
  		<TetrahedronFEMForceField name="FEM" youngModulus="500" poissonRatio="0.4" /> 
