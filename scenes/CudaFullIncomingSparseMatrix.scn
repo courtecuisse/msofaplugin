@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+
+<Node gravity="0 -10 0" dt="0.02" >
+	<RequiredPlugin pluginName='mSofaPlugin'/>
+	<RequiredPlugin pluginName='mSofaPlugin-private'/>
+	<RequiredPlugin name='SofaOpenglVisual'/> 
+	<RequiredPlugin name='SofaCUDA'/> 
+	
+	<VisualStyle displayFlags="showVisualModels hideBehaviorModels hideCollisionModels hideMappings showForceFields hideWireframe" />
+	<DefaultVisualManagerLoop />
+	
+	<SparseGrid name="SparseGrid" cellWidth="0.7" fileTopology="mesh/Armadillo_simplified.obj" />
+	
+	<Node name="DeformArmadillo1">
+		<EulerImplicitSolver />
+<!-- 		<MUnbuiltMatrix name="matrix" /> -->
+		<CudaFullIncomingSparseMatrix name="matrix" template="float" />
+		<MPCGLinearSolver name="solver" matrix="@matrix" iterations="100" />
+<!-- 		<CGLinearSolver name="solver" iterations="100" /> -->
+
+		<TetrahedronSetTopologyContainer name="Container" position="@../SparseGrid.position" />
+		<TetrahedronSetTopologyModifier name="Modifier"/>
+		<Hexa2TetraTopologicalMapping name="mapping" input="@../SparseGrid" output="@Container" swapping="false" />
+
+		<MechanicalObject template="CudaVec3f" name="mstate" showObject="false" />
+		<UniformMass name="mass" totalMass="100" />
+		
+ 		<TetrahedronFEMForceField name="FEM" youngModulus="500" poissonRatio="0.4" /> 
+
+		<BoxROI name="box" position="@../SparseGrid.position" box="-2 7 -2   2 13 2" />
+		<FixedConstraint name="fixed" indices="@box.indices" />
+		
+		
+<!--		<Node name="Surf">
+			<TriangleSetTopologyContainer name="Container" />
+			<TriangleSetTopologyModifier name="Modifier"/>
+			<Tetra2TriangleTopologicalMapping name="tmapping" input="@../Container" output="@Container" flipNormals="false"/>
+			
+			<OglModel color="0.0 1.0 0.0 1.0" computeNormals="true" />
+	
+			<IdentityMapping name="mapping" />
+		</Node>	-->	
+	</Node>
+	
+</Node>

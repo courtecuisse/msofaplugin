@@ -8,8 +8,7 @@
 	<DefaultVisualManagerLoop />
 	
 	<SparseGrid name="SparseGrid" cellWidth="0.7" fileTopology="mesh/Armadillo_simplified.obj" />
-	<BoxROI name="box" position="@SparseGrid.position" box="-2 7 -2   2 13 2" />
-	
+		
 	<Node name="DeformArmadillo1">
 		<EulerImplicitSolver />
 <!-- 		<MUnbuiltMatrix name="matrix" /> -->
@@ -26,7 +25,8 @@
 		
  		<TetrahedronFEMForceField name="FEM" youngModulus="500" poissonRatio="0.4" /> 
 
-		<FixedConstraint name="fixed" indices="@../box.indices" />
+		<BoxROI name="box" box="-2 7 -2   2 13 2" />
+		<FixedConstraint name="fixed" indices="@box.indices" />
 		
 		
 <!--		<Node name="Surf">
