@@ -340,11 +340,6 @@ public:
         auto X = this->getMechanicalVector(x)->write();
         auto B = this->getMechanicalVector(b)->read();
 
-//        double dot = this->dot(x, x);
-//        std::cout<<"dot_x = "<<dot<<std::endl;
-//        dot = this->dot(b, b);
-//        std::cout<<"dot_b = "<<dot<<std::endl;
-
         TReal * x_ptr = X->data();
         const TReal * b_ptr = B->data();
 
@@ -364,9 +359,6 @@ public:
 
             ex += M * eb * this->m_matrices[i]->getFactor(mparams);
         }
-
-        double dot_res = this->dot(x, x);
-        std::cout<<"dot_res = "<<dot_res<<std::endl;
     }
 };
 
