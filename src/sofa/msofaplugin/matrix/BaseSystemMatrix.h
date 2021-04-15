@@ -3,6 +3,7 @@
 #include <sofa/defaulttype/BaseMatrix.h>
 #include <sofa/defaulttype/Mat.h>
 #include <sofa/helper/vector.h>
+#include <sofa/core/behavior/MultiVec.h>
 #include <sofa/core/behavior/MultiMatrixAccessor.h>
 #include <SofaBaseLinearSolver/DefaultMultiMatrixAccessor.h>
 #include <sofa/simulation/MechanicalOperations.h>
