@@ -1,144 +1,105 @@
+/******************************************************************************
+*                 SOFA, Simulation Open-Framework Architecture                *
+*                    (c) 2006 INRIA, USTL, UJF, CNRS, MGH                     *
+*                                                                             *
+* This program is free software; you can redistribute it and/or modify it     *
+* under the terms of the GNU Lesser General Public License as published by    *
+* the Free Software Foundation; either version 2.1 of the License, or (at     *
+* your option) any later version.                                             *
+*                                                                             *
+* This program is distributed in the hope that it will be useful, but WITHOUT *
+* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or       *
+* FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License *
+* for more details.                                                           *
+*                                                                             *
+* You should have received a copy of the GNU Lesser General Public License    *
+* along with this program. If not, see <http://www.gnu.org/licenses/>.        *
+*******************************************************************************
+* Authors: The SOFA Team and external contributors (see Authors.txt)          *
+*                                                                             *
+* Contact information: contact@sofa-framework.org                             *
+******************************************************************************/
 #pragma once
+#include <SofaBaseLinearSolver/config.h>
+
+#include <SofaBaseLinearSolver/MatrixLinearSolver.h>
+#include <sofa/helper/map.h>
 
 #include <sofa/msofaplugin/solver/MBaseLinearSolver.h>
 #include <sofa/core/behavior/LinearSolver.h>
 #include <sofa/defaulttype/BaseMatrix.h>
-#include <sofa/helper/AdvancedTimer.h>
-#include <sofa/simulation/VectorOperations.h>
-#include <sofa/helper/map.h>
 
-namespace sofa::msofaplugin::solver {
+namespace sofa::msofaplugin::solver
+{
 
-class MPCGLinearSolver : public MBaseLinearSolver {
+using namespace sofa::component::linearsolver;
+
+/// Linear system solver using the conjugate gradient iterative algorithm
+template<class TMatrix, class TVector>
+class MPCGLinearSolver : public sofa::component::linearsolver::MatrixLinearSolver<TMatrix, TVector>
+{
 public:
+    SOFA_CLASS(SOFA_TEMPLATE2(MPCGLinearSolver,TMatrix,TVector),SOFA_TEMPLATE2(sofa::component::linearsolver::MatrixLinearSolver,TMatrix,TVector));
 
-    SOFA_CLASS(MPCGLinearSolver, MBaseLinearSolver);
+    typedef TMatrix Matrix;
+    typedef TVector Vector;
+    typedef sofa::component::linearsolver::MatrixLinearSolver<TMatrix,TVector> Inherit;
+    Data<unsigned> f_maxIter; ///< maximum number of iterations of the Conjugate Gradient solution
+    Data<SReal> f_tolerance; ///< desired precision of the Conjugate Gradient Solution (ratio of current residual norm over initial residual norm)
+    Data<SReal> f_smallDenominatorThreshold; ///< minimum value of the denominator in the conjugate Gradient solution
+    Data<bool> f_warmStart; ///< Use previous solution as initial solution
+    Data<bool> f_verbose; ///< Dump system state at each iteration
+    Data<std::map < std::string, sofa::helper::vector<SReal> > > f_graph; ///< Graph of residuals at each iteration
 
-    Data<std::map < std::string, sofa::helper::vector<double> > > d_graph; ///< Graph of residuals at each iteration
-    Data<int> d_iteration;
-    Data<double> d_tolerance;
-    Data<double> d_threshold;
     Data<bool> d_usePrecond; ///< Graph of residuals at each iteration
     core::objectmodel::SingleLink<MPCGLinearSolver,BaseSystemMatrix,BaseLink::FLAG_STRONGLINK|BaseLink::FLAG_STOREPATH> l_matrix;
     core::objectmodel::SingleLink<MPCGLinearSolver,MBaseLinearSolver,BaseLink::FLAG_STRONGLINK|BaseLink::FLAG_STOREPATH> l_preconditioner;
 
-    MPCGLinearSolver()
-    : d_graph(initData(&d_graph, "graph", "Error graph evolution"))
-    , d_iteration(initData(&d_iteration, 100,"iterations","Number of iterations"))
-    , d_tolerance(initData(&d_tolerance, 0.00001,"tolerance","Tolerance of the CG"))
-    , d_threshold(initData(&d_threshold, 0.00001,"threshold","Threshold of the CG"))
-    , d_usePrecond(initData(&d_usePrecond, true, "usePrecond", "Activate or desactivate the preconditioner"))
-    , l_matrix(initLink("matrix", "Link to the matrix"))
-    , l_preconditioner(initLink("preconditioner", "Link to the perconditioner (optional)"))
-    {
-        l_matrix.setPath("@.");
-    }
+protected:
 
-    virtual void buildSystemMatrix() override {
-        this->l_matrix->buildSystemMatrix(); // unbuilt:0 ms    eigen : 14 ms
-        if (d_usePrecond.getValue() && l_preconditioner != NULL) l_preconditioner->setSystemMBKMatrix(this->getMParams());
-    }
+    MPCGLinearSolver();
 
-    //compute x=inv(A) b
-    virtual void solve(BaseSystemMatrix::MechanicalVectorId & x, BaseSystemMatrix::MechanicalVectorId & b) override {
-        sofa::helper::AdvancedTimer::stepBegin("SolveSystem");
+    /// This method is separated from the rest to be able to use custom/optimized versions depending on the types of vectors.
+    /// It computes: p = p*beta + r
+    inline void cgstep_beta(const core::ExecParams* params, Vector& p, Vector& r, SReal beta);
+    /// This method is separated from the rest to be able to use custom/optimized versions depending on the types of vectors.
+    /// It computes: x += p*alpha, r -= q*alpha
+    inline void cgstep_alpha(const core::ExecParams* params, Vector& x, Vector& r, Vector& p, Vector& q, SReal alpha);
 
-        BaseSystemMatrix::MechanicalVectorId q = getMatrix()->createMVecId();
-        BaseSystemMatrix::MechanicalVectorId d = getMatrix()->createMVecId();
-        BaseSystemMatrix::MechanicalVectorId r = getMatrix()->createMVecId();
+    int timeStepCount;
+    bool equilibriumReached;
 
-        this->l_matrix->mult(&this->m_params, q, x); // 0.28    0.6
-//        auto A = this->l_matrix->getCompressedMatrix(&this->m_params); // 1.5 ms
-//        A->mult(q,x); //0.24 ms
+public:
+    void init() override;
+    void reinit() override;
 
-        this->l_matrix->eq(r,b,q,-1); // r = b - A*x
+    void resetSystem() override;
 
-        if (! d_usePrecond.getValue() || l_preconditioner == NULL) this->l_matrix->eq(d,r); // d=r
-        else {
-            helper::AdvancedTimer::stepBegin("PCG - apply precond");
-            l_preconditioner->solve(d,r);
-            helper::AdvancedTimer::stepEnd("PCG - apply precond");
-        }
+    void setSystemMBKMatrix(const sofa::core::MechanicalParams* mparams) override;
 
-
-        double d_new = this->l_matrix->dot(r,d); // d_new=r*d
-
-        double d_0 = d_new;
-
-        double tolerance;
-        if(d_tolerance.getValue() < 0.0)
-            tolerance = -1.0;
-        else
-            tolerance = d_tolerance.getValue()*d_tolerance.getValue()*d_0;
-
-        sofa::helper::vector<double> & graph = (*d_graph.beginEdit())["tolerance"];
-        graph.clear();
-
-        int cg_iter = 0;
-        while (cg_iter < d_iteration.getValue() && d_new > tolerance)
-        {
-//            helper::AdvancedTimer::stepBegin("CG ite runtime");
-            graph.push_back(d_new);
-
-//            sofa::helper::AdvancedTimer::stepBegin("SpMV");
-            // q = Ad;
-            this->l_matrix->mult(&this->m_params,q,d); // 0.28 ms
-//            A->mult(q,d); // 0.24 ms
-//            sofa::helper::AdvancedTimer::stepEnd("SpMV");
-
-//            sofa::helper::AdvancedTimer::stepBegin("dot");
-            double den = this->l_matrix->dot(d,q);
-//            sofa::helper::AdvancedTimer::stepEnd("dot");
-
-
-            if( fabs(den)<d_threshold.getValue()) break;
-//            sofa::helper::AdvancedTimer::stepBegin("peq");
-
-            double alpha = d_new / den;
-
-            this->l_matrix->peq(x,d,alpha);
-
-            this->l_matrix->peq(r,q,-alpha);
-
-            double d_old = d_new;
-//            sofa::helper::AdvancedTimer::stepEnd("peq");
-
-            if (! d_usePrecond.getValue() || l_preconditioner == NULL) {
-//                sofa::helper::AdvancedTimer::stepBegin("dot");
-                d_new = this->l_matrix->dot(r,r); // r*r
-//                sofa::helper::AdvancedTimer::stepEnd("dot");
-
-                double beta = d_new / d_old;
-
-                this->l_matrix->eq(d,r,d,beta);
-
-            } else {
-                helper::AdvancedTimer::stepBegin("PCG - apply precond");
-                l_preconditioner->solve(q,r);
-                helper::AdvancedTimer::stepEnd("PCG - apply precond");
-
-                d_new = this->l_matrix->dot(r,q); // d_new=r * q
-
-                double beta = d_new / d_old;
-
-                this->l_matrix->eq(d,q,d,beta);
-            }
-
-            ++cg_iter;
-//            helper::AdvancedTimer::stepEnd("CG ite runtime");
-        }
-        d_graph.endEdit();
-
-        sofa::helper::AdvancedTimer::stepEnd("SolveSystem");
-
-        sofa::helper::AdvancedTimer::valSet("PCG rho", d_new);
-        sofa::helper::AdvancedTimer::valSet("PCG iterations", cg_iter);
-    }    
-
-    BaseSystemMatrix * getMatrix() override {
-        return this->l_matrix.get();
-    }
+    /// Solve Mx=b
+    void solve (Matrix& M, Vector& x, Vector& b) override;
 
 };
 
-}
+template<>
+inline void MPCGLinearSolver<component::linearsolver::GraphScatteredMatrix,component::linearsolver::GraphScatteredVector>::cgstep_beta(const core::ExecParams* /*params*/, Vector& p, Vector& r, SReal beta);
+
+template<>
+inline void MPCGLinearSolver<component::linearsolver::GraphScatteredMatrix,component::linearsolver::GraphScatteredVector>::cgstep_alpha(const core::ExecParams* params, Vector& x, Vector& r, Vector& p, Vector& q, SReal alpha);
+
+#if  !defined(SOFA_COMPONENT_LINEARSOLVER_MPCGLinearSolver_CPP)
+extern template class SOFA_SOFABASELINEARSOLVER_API MPCGLinearSolver< GraphScatteredMatrix, GraphScatteredVector >;
+extern template class SOFA_SOFABASELINEARSOLVER_API MPCGLinearSolver< FullMatrix<double>, FullVector<double> >;
+extern template class SOFA_SOFABASELINEARSOLVER_API MPCGLinearSolver< SparseMatrix<double>, FullVector<double> >;
+extern template class SOFA_SOFABASELINEARSOLVER_API MPCGLinearSolver< CompressedRowSparseMatrix<double>, FullVector<double> >;
+extern template class SOFA_SOFABASELINEARSOLVER_API MPCGLinearSolver< CompressedRowSparseMatrix<defaulttype::Mat<2,2,double> >, FullVector<double> >;
+extern template class SOFA_SOFABASELINEARSOLVER_API MPCGLinearSolver< CompressedRowSparseMatrix<defaulttype::Mat<3,3,double> >, FullVector<double> >;
+extern template class SOFA_SOFABASELINEARSOLVER_API MPCGLinearSolver< CompressedRowSparseMatrix<defaulttype::Mat<4,4,double> >, FullVector<double> >;
+extern template class SOFA_SOFABASELINEARSOLVER_API MPCGLinearSolver< CompressedRowSparseMatrix<defaulttype::Mat<6,6,double> >, FullVector<double> >;
+extern template class SOFA_SOFABASELINEARSOLVER_API MPCGLinearSolver< CompressedRowSparseMatrix<defaulttype::Mat<8,8,double> >, FullVector<double> >;
+
+
+#endif
+
+} // namespace sofa::component::linearsolver

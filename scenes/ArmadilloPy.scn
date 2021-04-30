@@ -23,7 +23,7 @@
                 <EulerImplicitSolver />
                 <!--<MUnbuiltMatrix name="matrix" />-->
                 <IncomingSparseMatrix name="matrix" />
-                <MPCGLinearSolver name="solver" matrix="@matrix" iterations="100" />
+                <MShewchukPCGLinearSolver name="solver" matrix="@matrix" iterations="100" />
 
 		<TetrahedronSetTopologyContainer name="Container" position="@../RegularGrid/HexaTop.position" tetrahedra="@../RegularGrid/TetraContainer.tetrahedra" />
 		<TetrahedronSetTopologyModifier name="Modifier"/>
@@ -49,7 +49,7 @@
         <Node name="DeformArmadillo2">
                 <EulerImplicitSolver />
                 <FullIncomingSparseMatrix name="matrix" />
-                <MPCGLinearSolver name="solver" matrix="@matrix" iterations="100" />
+                <MShewchukPCGLinearSolver name="solver" matrix="@matrix" iterations="100" />
 
                 <TetrahedronSetTopologyContainer name="Container" position="@../RegularGrid/HexaTop.position" tetrahedra="@../RegularGrid/TetraContainer.tetrahedra" />
                 <TetrahedronSetTopologyModifier name="Modifier"/>
