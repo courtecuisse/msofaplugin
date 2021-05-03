@@ -8,6 +8,10 @@
 #include <sofa/core/behavior/MultiMatrixAccessor.h>
 #include <SofaBaseLinearSolver/DefaultMultiMatrixAccessor.h>
 #include <sofa/simulation/MechanicalOperations.h>
+#include <sofa/simulation/mechanicalvisitor/MechanicalAddMBKdxVisitor.h>
+#include <sofa/simulation/mechanicalvisitor/MechanicalResetForceVisitor.h>
+#include <sofa/simulation/mechanicalvisitor/MechanicalApplyConstraintsVisitor.h>
+#include <sofa/simulation/BaseMechanicalVisitor.h>
 #include <map>
 
 namespace sofa::msofaplugin::matrix {
@@ -28,12 +32,12 @@ public:
         mparams->setDf(x);
 
         if (! acc) {
-            simulation::MechanicalResetForceVisitor(mparams, x, false).execute(this->getContext());
+            simulation::mechanicalvisitor::MechanicalResetForceVisitor(mparams, x, false).execute(this->getContext());
 //            simulation::MechanicalPropagateDxAndResetForceVisitor(&m_params, b, x, false).execute(m_context);
         }
 
-        simulation::MechanicalAddMBKdxVisitor(mparams, x, acc).execute(this->getContext());
-        simulation::MechanicalApplyConstraintsVisitor(mparams, x).execute(this->getContext());
+        simulation::mechanicalvisitor::MechanicalAddMBKdxVisitor(mparams, x, acc).execute(this->getContext());
+        simulation::mechanicalvisitor::MechanicalApplyConstraintsVisitor(mparams, x).execute(this->getContext());
 
 //        TIMER_END(Mult);
 //        TIMER_PRINT("Mult " << Mult << " ms");

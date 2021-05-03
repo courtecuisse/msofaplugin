@@ -29,6 +29,8 @@
 #include <sofa/core/behavior/LinearSolver.h>
 #include <sofa/defaulttype/BaseMatrix.h>
 
+#include <sofa/simulation/mechanicalvisitor/MechanicalVMultiOpVisitor.h>
+
 namespace sofa::msofaplugin::solver
 {
 

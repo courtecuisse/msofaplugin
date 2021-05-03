@@ -2,6 +2,8 @@
 
 #include <sofa/msofaplugin/matrix/BaseSystemMatrix.h>
 #include <sofa/msofaplugin/matrix/CompressableMatrix.h>
+#include <sofa/core/behavior/BaseForceField.h>
+#include <sofa/core/behavior/BaseMass.h>
 #include <sofa/defaulttype/BaseMatrix.h>
 #include <sofa/core/behavior/MultiMatrixAccessor.h>
 #include <sofa/msofaplugin/matrix/MechanicalVector.h>

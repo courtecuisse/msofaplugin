@@ -57,7 +57,7 @@ inline void MPCGLinearSolver<component::linearsolver::GraphScatteredMatrix,compo
     ops[1].first = (MultiVecDerivId)r;
     ops[1].second.push_back(std::make_pair((MultiVecDerivId)r,1.0));
     ops[1].second.push_back(std::make_pair((MultiVecDerivId)q,-alpha));
-    this->executeVisitor(simulation::MechanicalVMultiOpVisitor(params, ops));
+    this->executeVisitor(simulation::mechanicalvisitor::MechanicalVMultiOpVisitor(params, ops));
 #endif
 }
 
