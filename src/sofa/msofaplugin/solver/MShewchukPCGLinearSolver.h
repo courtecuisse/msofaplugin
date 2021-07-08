@@ -14,7 +14,7 @@ public:
 
     SOFA_CLASS(MShewchukPCGLinearSolver, MBaseLinearSolver);
 
-    Data<std::map < std::string, sofa::helper::vector<double> > > d_graph; ///< Graph of residuals at each iteration
+    Data<std::map < std::string, sofa::type::vector<double> > > d_graph; ///< Graph of residuals at each iteration
     Data<int> d_iteration;
     Data<double> d_tolerance;
     Data<double> d_threshold;
@@ -72,7 +72,7 @@ public:
         else
             tolerance = d_tolerance.getValue()*d_tolerance.getValue()*d_0;
 
-        sofa::helper::vector<double> & graph = (*d_graph.beginEdit())["tolerance"];
+        sofa::type::vector<double> & graph = (*d_graph.beginEdit())["tolerance"];
         graph.clear();
 
         int cg_iter = 0;

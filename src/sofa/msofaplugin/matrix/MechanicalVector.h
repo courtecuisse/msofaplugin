@@ -14,7 +14,7 @@ public:
 };
 
 template<class T>
-class RealType<helper::vector<T>> {
+class RealType<sofa::type::vector<T>> {
 public:
     typedef T Real;
 };
@@ -245,7 +245,7 @@ public:
         core::behavior::BaseMechanicalState * m_state;
         unsigned m_id;
         VecReal2 * m_localVec;
-        helper::vector<SReal> m_tmp;
+        sofa::type::vector<SReal> m_tmp;
     };
 
 
@@ -297,10 +297,10 @@ public:
     }
 
     BaseStateSynchronizer * createSynchronizer(BaseStateAccessor::SPtr v, unsigned offset, unsigned size) {
-        if (auto acc = core::objectmodel::SPtr_dynamic_cast<TStateAccessor<helper::vector<float>>>(v)) {
-            return new StateSynchronizer<helper::vector<float>,VecReal>(acc, this->id(), &m_localData, offset, size);
-        } else if (auto acc = core::objectmodel::SPtr_dynamic_cast<TStateAccessor<helper::vector<double>>>(v)) {
-            return new StateSynchronizer<helper::vector<double>,VecReal>(acc, this->id(), &m_localData, offset, size);
+        if (auto acc = core::objectmodel::SPtr_dynamic_cast<TStateAccessor<sofa::type::vector<float>>>(v)) {
+            return new StateSynchronizer<sofa::type::vector<float>,VecReal>(acc, this->id(), &m_localData, offset, size);
+        } else if (auto acc = core::objectmodel::SPtr_dynamic_cast<TStateAccessor<sofa::type::vector<double>>>(v)) {
+            return new StateSynchronizer<sofa::type::vector<double>,VecReal>(acc, this->id(), &m_localData, offset, size);
         }
 
         return new GenericSynchronizer<VecReal>(v->getState(),this->id(), &m_localData,offset,size);

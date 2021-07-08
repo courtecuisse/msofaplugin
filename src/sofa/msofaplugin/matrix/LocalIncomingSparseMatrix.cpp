@@ -4,8 +4,8 @@
 namespace sofa::msofaplugin::matrix {
 
 int LocalMIncomingBaseMatrixClass = core::RegisterObject("Direct Linear Solver using a Sparse LDL^T factorization.")
-.add< LocalIncomingSparseMatrix< helper::vector<double>, helper::vector<int> > >()
-.add< LocalIncomingSparseMatrix< helper::vector<float>, helper::vector<int> > >()
+.add< LocalIncomingSparseMatrix< sofa::type::vector<double>, sofa::type::vector<int> > >()
+.add< LocalIncomingSparseMatrix< sofa::type::vector<float>, sofa::type::vector<int> > >()
 ;
 
 }

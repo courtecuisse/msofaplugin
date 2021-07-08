@@ -51,7 +51,7 @@ public:
     Data<SReal> f_smallDenominatorThreshold; ///< minimum value of the denominator in the conjugate Gradient solution
     Data<bool> f_warmStart; ///< Use previous solution as initial solution
     Data<bool> f_verbose; ///< Dump system state at each iteration
-    Data<std::map < std::string, sofa::helper::vector<SReal> > > f_graph; ///< Graph of residuals at each iteration
+    Data<std::map < std::string, sofa::type::vector<SReal> > > f_graph; ///< Graph of residuals at each iteration
 
     Data<bool> d_usePrecond; ///< Graph of residuals at each iteration
     core::objectmodel::SingleLink<MPCGLinearSolver,BaseSystemMatrix,BaseLink::FLAG_STRONGLINK|BaseLink::FLAG_STOREPATH> l_matrix;
@@ -95,11 +95,11 @@ extern template class SOFA_SOFABASELINEARSOLVER_API MPCGLinearSolver< GraphScatt
 extern template class SOFA_SOFABASELINEARSOLVER_API MPCGLinearSolver< FullMatrix<double>, FullVector<double> >;
 extern template class SOFA_SOFABASELINEARSOLVER_API MPCGLinearSolver< SparseMatrix<double>, FullVector<double> >;
 extern template class SOFA_SOFABASELINEARSOLVER_API MPCGLinearSolver< CompressedRowSparseMatrix<double>, FullVector<double> >;
-extern template class SOFA_SOFABASELINEARSOLVER_API MPCGLinearSolver< CompressedRowSparseMatrix<defaulttype::Mat<2,2,double> >, FullVector<double> >;
-extern template class SOFA_SOFABASELINEARSOLVER_API MPCGLinearSolver< CompressedRowSparseMatrix<defaulttype::Mat<3,3,double> >, FullVector<double> >;
-extern template class SOFA_SOFABASELINEARSOLVER_API MPCGLinearSolver< CompressedRowSparseMatrix<defaulttype::Mat<4,4,double> >, FullVector<double> >;
-extern template class SOFA_SOFABASELINEARSOLVER_API MPCGLinearSolver< CompressedRowSparseMatrix<defaulttype::Mat<6,6,double> >, FullVector<double> >;
-extern template class SOFA_SOFABASELINEARSOLVER_API MPCGLinearSolver< CompressedRowSparseMatrix<defaulttype::Mat<8,8,double> >, FullVector<double> >;
+extern template class SOFA_SOFABASELINEARSOLVER_API MPCGLinearSolver< CompressedRowSparseMatrix<type::Mat<2,2,double> >, FullVector<double> >;
+extern template class SOFA_SOFABASELINEARSOLVER_API MPCGLinearSolver< CompressedRowSparseMatrix<type::Mat<3,3,double> >, FullVector<double> >;
+extern template class SOFA_SOFABASELINEARSOLVER_API MPCGLinearSolver< CompressedRowSparseMatrix<type::Mat<4,4,double> >, FullVector<double> >;
+extern template class SOFA_SOFABASELINEARSOLVER_API MPCGLinearSolver< CompressedRowSparseMatrix<type::Mat<6,6,double> >, FullVector<double> >;
+extern template class SOFA_SOFABASELINEARSOLVER_API MPCGLinearSolver< CompressedRowSparseMatrix<type::Mat<8,8,double> >, FullVector<double> >;
 
 
 #endif

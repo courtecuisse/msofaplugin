@@ -36,7 +36,7 @@ public:
         //Visitor to retreive the list of mstates
         class GetMechanicalStateVisitor : public sofa::simulation::BaseMechanicalVisitor {
         public:
-            GetMechanicalStateVisitor(helper::vector<core::behavior::BaseMechanicalState*> & v)
+            GetMechanicalStateVisitor(sofa::type::vector<core::behavior::BaseMechanicalState*> & v)
             : sofa::simulation::BaseMechanicalVisitor(core::ExecParams::defaultInstance())
             , m_states(v) { m_states.clear(); }
 
@@ -48,7 +48,7 @@ public:
             std::vector<core::behavior::BaseMechanicalState*> & m_states;
         };
         //Get all the mstate concerned by the solver
-        helper::vector<core::behavior::BaseMechanicalState*> states;
+        sofa::type::vector<core::behavior::BaseMechanicalState*> states;
         GetMechanicalStateVisitor(states).execute(getContext());
 
         m_globalSize = 0;

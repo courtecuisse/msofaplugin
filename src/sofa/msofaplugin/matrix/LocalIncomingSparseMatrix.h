@@ -71,7 +71,7 @@ public:
         m_sparseValuesVec.push_back(v);
     }
 
-    inline void add(Index i, Index j, const defaulttype::Mat3x3d & M) override {
+    inline void add(Index i, Index j, const type::Mat3x3d & M) override {
         m_sparseIndices.push_back(MatrixCoord(i+0,j+0));
         m_sparseIndices.push_back(MatrixCoord(i+0,j+1));
         m_sparseIndices.push_back(MatrixCoord(i+0,j+2));
@@ -109,7 +109,7 @@ public:
 
     void clearRowsCols(Index , Index ) override {}
 
-    void inline rebuildPatternAccess(helper::vector<int> & clearCols, helper::vector<int> & clearRows) {
+    void inline rebuildPatternAccess(sofa::type::vector<int> & clearCols, sofa::type::vector<int> & clearRows) {
         std::vector<int> countvec;
 
         std::vector<int> tmp_colptr;//CRS format
@@ -239,7 +239,7 @@ public:
 
 private :
     std::vector<Real> m_sparseValuesVec; // incoming new values
-    helper::vector<MatrixCoord> m_sparseIndices; // incoming vector of coordinated used to check the consistency of the structure
+    sofa::type::vector<MatrixCoord> m_sparseIndices; // incoming vector of coordinated used to check the consistency of the structure
 
     unsigned & m_colSize;
     unsigned & m_rowSize;
@@ -286,7 +286,7 @@ public:
         m_valuesPtr[m_mapping[m_writeId++]] += v;
     }
 
-    inline void add(Index , Index , const defaulttype::Mat3x3d & M) override {
+    inline void add(Index , Index , const type::Mat3x3d & M) override {
         m_valuesPtr[m_mapping[m_writeId++]] += M[0][0];
         m_valuesPtr[m_mapping[m_writeId++]] += M[0][1];
         m_valuesPtr[m_mapping[m_writeId++]] += M[0][2];
@@ -386,7 +386,7 @@ public:
         m_colSize = c;
     }
 
-    inline void buildMatrix(std::vector<BaseStateAccessor::SPtr> & vacc,helper::vector<int> & clearCols,helper::vector<int> & clearRows) {
+    inline void buildMatrix(std::vector<BaseStateAccessor::SPtr> & vacc,sofa::type::vector<int> & clearCols,sofa::type::vector<int> & clearRows) {
         m_accessor.clear();
         m_accessor.setGlobalMatrix(&m_buildingMatrix);
         m_accessor.setupMatrices();

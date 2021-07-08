@@ -46,7 +46,7 @@ public:
     typedef typename CompressableMatrix<VecReal,VecInt>::Real Real;
     typedef defaulttype::BaseMatrix::Index Index;
 
-    ProjectIncomingMatrix(helper::vector<int> & clearCols, helper::vector<int> & clearRows)
+    ProjectIncomingMatrix(sofa::type::vector<int> & clearCols, sofa::type::vector<int> & clearRows)
     : m_clearCols(clearCols)
     , m_clearRows(clearRows)
     {}
@@ -196,9 +196,9 @@ public:
 
 private :
     unsigned m_rowSize,m_colSize;
-    helper::vector<int> & m_clearCols;
-    helper::vector<int> & m_clearRows;
-    helper::vector<Eigen::Triplet<Real>> m_setVal;
+    sofa::type::vector<int> & m_clearCols;
+    sofa::type::vector<int> & m_clearRows;
+    sofa::type::vector<Eigen::Triplet<Real>> m_setVal;
     Eigen::SparseMatrix<Real,Eigen::RowMajor> m_P_eigen;
 
     int m_rows;
@@ -310,7 +310,7 @@ protected:
     unsigned m_rowSize,m_colSize;
     std::vector<typename LocalIncomingSparseMatrix<VecReal,VecInt>::SPtr> m_matrices;
     Eigen::SparseMatrix<Real,Eigen::RowMajor> M_global;
-    helper::vector<int> m_clearCols,m_clearRows;
+    sofa::type::vector<int> m_clearCols,m_clearRows;
     ProjectIncomingMatrix<VecReal, VecInt> m_projectionMatrix;
 
 };
@@ -327,13 +327,13 @@ template<> struct IncomingEigenType<float> {
 };
 
 template<class TReal>
-class IncomingSparseMatrix : public BaseIncomingSparseMatrix<helper::vector<TReal>, helper::vector<int>> {
+class IncomingSparseMatrix : public BaseIncomingSparseMatrix<sofa::type::vector<TReal>, sofa::type::vector<int>> {
 public:
 
 
     typedef TReal Real;
-    typedef helper::vector<TReal> VecReal;
-    typedef helper::vector<int> VecInt;
+    typedef sofa::type::vector<TReal> VecReal;
+    typedef sofa::type::vector<int> VecInt;
 
     SOFA_CLASS(SOFA_TEMPLATE(IncomingSparseMatrix,TReal),SOFA_TEMPLATE2(BaseIncomingSparseMatrix, VecReal, VecInt));
 
