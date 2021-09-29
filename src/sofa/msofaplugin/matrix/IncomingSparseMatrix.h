@@ -8,7 +8,6 @@
 #include <sofa/msofaplugin/matrix/MechanicalVector.h>
 #include <SofaBaseLinearSolver/DefaultMultiMatrixAccessor.h>
 #include <sofa/simulation/MechanicalOperations.h>
-#include <sofa/simulation/MechanicalMatrixVisitor.h>
 #include <sofa/core/behavior/BaseProjectiveConstraintSet.h>
 #include <chrono>
 #include <iostream>
