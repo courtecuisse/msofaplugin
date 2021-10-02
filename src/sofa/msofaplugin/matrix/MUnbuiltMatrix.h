@@ -72,9 +72,9 @@ public:
         return a.peq(b,f);
     }
 
-    virtual void freeMVector(MechanicalVectorId & v) {}
+    virtual void freeMVector(MechanicalVectorId & /*v*/) {}
 
-    virtual void syncMVector(MechanicalVectorId & v,bool copy) {}
+    virtual void syncMVector(MechanicalVectorId & /*v*/,bool /*copy*/) {}
 
     virtual unsigned colSize() const {
         return 0 ;

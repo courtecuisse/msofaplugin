@@ -18,6 +18,12 @@ file(GLOB_RECURSE SCENES_FILES
     "scenes/*.xml"
 )
 
+find_package(SofaFramework REQUIRED)
+find_package(Sofa.SimulationCore REQUIRED)
+find_package(SofaBaseLinearSolver REQUIRED)
+find_package(Metis REQUIRED)
+include_directories(${METIS_INCLUDE_DIRS})
+
 set_source_files_properties(${IGNORED_FILES} PROPERTIES HEADER_FILE_ONLY TRUE)
 set_source_files_properties(${DEPRECATED_FILES} PROPERTIES HEADER_FILE_ONLY TRUE)
 
@@ -26,7 +32,12 @@ set(${PROJECT_NAME}_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
 set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS "-DPLUGIN_DATA_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/\"")
 
-target_link_libraries(${PROJECT_NAME} SofaCore SofaSimulationCommon SofaBaseLinearSolver metis)
+target_link_libraries(${PROJECT_NAME}
+    SofaCore
+    Sofa.SimulationCore
+    SofaBaseLinearSolver
+    metis
+)
 
 ## Install rules for the library and headers; CMake package configurations files
 target_include_directories(${PROJECT_NAME} PUBLIC "$<BUILD_INTERFACE:${${PROJECT_NAME}_INCLUDE_DIRS}>")
