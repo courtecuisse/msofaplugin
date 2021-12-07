@@ -169,15 +169,15 @@ public:
         return m_P_eigen;
     }
 
-    const int rowSize() {
+    unsigned rowSize() {
         return m_rows;
     }
 
-    const int colSize() {
+    unsigned colSize() {
         return m_cols;
     }
 
-    const int getNnz() {
+    unsigned getNnz() {
         return m_nnz;
     }
 

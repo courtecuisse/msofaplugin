@@ -142,7 +142,7 @@ public:
         for (unsigned i=0;i<clearCols.size();i++) countvec[clearCols[i]] = 0;
 
         tmp_tran_colptr[0] = 0;
-        for (int j=0;j<m_colSize;j++) tmp_tran_colptr[j+1] = tmp_tran_colptr[j] + countvec[j];
+        for (unsigned j=0;j<m_colSize;j++) tmp_tran_colptr[j+1] = tmp_tran_colptr[j] + countvec[j];
 
         countvec.clear();
         countvec.resize(m_colSize); // reset to zero
@@ -178,7 +178,7 @@ public:
         for (unsigned i=0;i<clearRows.size();i++) countvec[clearRows[i]] = 0;
 
         tmp_colptr[0] = 0;
-        for (int j=0;j<m_rowSize;j++) tmp_colptr[j+1] = tmp_colptr[j] + countvec[j];
+        for (unsigned j=0;j<m_rowSize;j++) tmp_colptr[j+1] = tmp_colptr[j] + countvec[j];
 
         countvec.clear();
         countvec.resize(m_rowSize); // reset to zero
@@ -240,8 +240,8 @@ private :
     std::vector<Real> m_sparseValuesVec; // incoming new values
     sofa::type::vector<MatrixCoord> m_sparseIndices; // incoming vector of coordinated used to check the consistency of the structure
 
-    unsigned & m_colSize;
     unsigned & m_rowSize;
+    unsigned & m_colSize;
 
     VecInt & m_colptr;//CRS format
     VecInt & m_rowind;
@@ -312,9 +312,9 @@ public:
     void clearRowsCols(Index , Index ) override {}
 
 private :
-    unsigned & m_colSize;
-    unsigned & m_rowSize;
     unsigned m_writeId;
+    unsigned & m_rowSize;
+    unsigned & m_colSize;
 
     VecReal & m_values;
     const std::vector<int> & m_mapping;
@@ -497,9 +497,9 @@ protected:
     , m_rowSize(0)
     , m_colSize(0) {}
 
-    unsigned m_rowSize,m_colSize;
     BuildingIncomingMatrix<VecReal,VecInt> m_buildingMatrix;
     MappedIncomingMatrix<VecReal,VecInt> m_mappedMatrix;
+    unsigned m_rowSize,m_colSize;
 
     VecInt m_colptr;//CRS format
     VecInt m_rowind;

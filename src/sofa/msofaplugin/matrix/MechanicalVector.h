@@ -170,7 +170,7 @@ public:
         , m_accessor(acc)
         , m_id(id)
         , m_localVec(lv) {
-            acc->sout << "Create A StateSynchronizer with id = " << id << acc->sendl;
+            msg_info(acc->getState()) << "Create A StateSynchronizer with id = " << id;
         }
 
         virtual void syncToState() {
@@ -196,9 +196,9 @@ public:
         }
 
     protected:
+        typename TStateAccessor<VecReal1>::SPtr m_accessor;
         unsigned m_id;
         VecReal2 * m_localVec;
-        typename TStateAccessor<VecReal1>::SPtr m_accessor;
     };
 
     template<class VecReal2>
@@ -330,7 +330,7 @@ public:
     RawMechanicalVector(unsigned id, typename TStateAccessor<VecReal>::SPtr acc)
     : MechanicalVector<VecReal>(id)
     , m_accessor(acc) {
-        acc->sout << "Create A RawMechanicalVector with id = " << id << acc->sendl;
+        msg_info(acc->getState()) << "Create A RawMechanicalVector with id = " << id;
     }
 
     void syncToState() const override  {}

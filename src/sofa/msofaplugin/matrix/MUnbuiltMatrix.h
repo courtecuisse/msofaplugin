@@ -84,7 +84,7 @@ public:
         return 0 ;
     }
 
-    virtual unsigned char getDomain (int x, int y) const {
+    virtual unsigned char getDomain (int /*x*/, int /*y*/) const {
         return 0 ;
     }
 protected:
