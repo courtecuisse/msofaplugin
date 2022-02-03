@@ -4,7 +4,7 @@
 #include <sofa/msofaplugin/matrix/CompressableMatrix.h>
 #include <sofa/core/behavior/BaseForceField.h>
 #include <sofa/core/behavior/BaseMass.h>
-#include <sofa/defaulttype/BaseMatrix.h>
+#include <sofa/linearalgebra/BaseMatrix.h>
 #include <sofa/core/behavior/MultiMatrixAccessor.h>
 #include <sofa/msofaplugin/matrix/MechanicalVector.h>
 #include <SofaBaseLinearSolver/DefaultMultiMatrixAccessor.h>
@@ -21,10 +21,10 @@
 namespace sofa::msofaplugin::matrix {
 
 template<class VecReal,class VecInt>
-class BuildingIncomingMatrix : public defaulttype::BaseMatrix {
+class BuildingIncomingMatrix : public sofa::linearalgebra::BaseMatrix {
 public:
     typedef typename RealType<VecReal>::Real Real;
-    typedef defaulttype::BaseMatrix::Index Index;
+    typedef sofa::linearalgebra::BaseMatrix::Index Index;
 
     struct MatrixCoord {
         MatrixCoord() {}
@@ -251,10 +251,10 @@ private :
 };
 
 template<class VecReal,class VecInt>
-class MappedIncomingMatrix : public defaulttype::BaseMatrix {
+class MappedIncomingMatrix : public sofa::linearalgebra::BaseMatrix {
 public:
     typedef typename RealType<VecReal>::Real Real;
-    typedef defaulttype::BaseMatrix::Index Index;
+    typedef sofa::linearalgebra::BaseMatrix::Index Index;
 
     MappedIncomingMatrix(unsigned & r,unsigned & c,VecReal & values,const std::vector<int> & mapping)
     : m_rowSize(r)

@@ -1,5 +1,5 @@
 #include <sofa/msofaplugin/matrix/StateAccessor.h>
-#include <sofa/defaulttype/VecTypes.h>
+#include <sofa/type/Vec.h>
 #include <sofa/core/ObjectFactory.h>
 
 namespace sofa::msofaplugin::matrix {

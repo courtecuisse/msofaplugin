@@ -1,7 +1,7 @@
 #pragma once
 
 #include <sofa/core/objectmodel/BaseObject.h>
-#include <sofa/defaulttype/BaseVector.h>
+#include <sofa/linearalgebra/BaseVector.h>
 #include <sofa/simulation/VectorOperations.h>
 #include <sofa/core/behavior/MultiVec.h>
 

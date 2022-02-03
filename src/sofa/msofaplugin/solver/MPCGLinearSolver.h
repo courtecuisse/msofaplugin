@@ -27,7 +27,7 @@
 
 #include <sofa/msofaplugin/solver/MBaseLinearSolver.h>
 #include <sofa/core/behavior/LinearSolver.h>
-#include <sofa/defaulttype/BaseMatrix.h>
+#include <sofa/linearalgebra/BaseMatrix.h>
 
 #include <sofa/simulation/mechanicalvisitor/MechanicalVMultiOpVisitor.h>
 

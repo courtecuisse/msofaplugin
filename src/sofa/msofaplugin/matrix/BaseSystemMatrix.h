@@ -2,7 +2,7 @@
 
 #include <sofa/defaulttype/BaseMatrix.h>
 #include <sofa/type/Mat.h>
-#include <sofa/type/vector.h>
+#include <sofa/type/Vec.h>
 #include <sofa/core/behavior/MultiVec.h>
 #include <sofa/core/behavior/MultiMatrixAccessor.h>
 #include <SofaBaseLinearSolver/DefaultMultiMatrixAccessor.h>

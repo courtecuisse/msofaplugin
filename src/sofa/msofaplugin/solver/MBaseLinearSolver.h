@@ -3,7 +3,7 @@
 #include <sofa/msofaplugin/matrix/MechanicalVector.h>
 #include <sofa/msofaplugin/matrix/BaseSystemMatrix.h>
 #include <sofa/core/behavior/LinearSolver.h>
-#include <sofa/defaulttype/BaseMatrix.h>
+#include <sofa/linearalgebra/BaseMatrix.h>
 #include <sofa/helper/AdvancedTimer.h>
 #include <sofa/simulation/VectorOperations.h>
 #include <sofa/helper/map.h>
@@ -80,7 +80,7 @@ public:
         return &m_params;
     }
 
-//    virtual void setWi(defaulttype::BaseMatrix * res) = 0;
+//    virtual void setWi(sofa::linearalgebra::BaseMatrix * res) = 0;
 
 protected:
     core::MultiVecDerivId m_rh;

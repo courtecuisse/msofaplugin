@@ -3,7 +3,7 @@
 #include <sofa/msofaplugin/matrix/BaseSystemMatrix.h>
 #include <sofa/msofaplugin/matrix/CompressableMatrix.h>
 #include <sofa/msofaplugin/matrix/LocalIncomingSparseMatrix.h>
-#include <sofa/defaulttype/BaseMatrix.h>
+#include <sofa/linearalgebra/BaseMatrix.h>
 #include <sofa/core/behavior/MultiMatrixAccessor.h>
 #include <sofa/msofaplugin/matrix/MechanicalVector.h>
 #include <SofaBaseLinearSolver/DefaultMultiMatrixAccessor.h>
@@ -40,10 +40,10 @@ public:
 
 
 template<class VecReal,class VecInt>
-class ProjectIncomingMatrix : public defaulttype::BaseMatrix {
+class ProjectIncomingMatrix : public sofa::linearalgebra::BaseMatrix {
 public:
     typedef typename CompressableMatrix<VecReal,VecInt>::Real Real;
-    typedef defaulttype::BaseMatrix::Index Index;
+    typedef sofa::linearalgebra::BaseMatrix::Index Index;
 
     ProjectIncomingMatrix(sofa::type::vector<int> & clearCols, sofa::type::vector<int> & clearRows)
     : m_clearCols(clearCols)
