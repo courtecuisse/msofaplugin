@@ -482,10 +482,6 @@ public:
 
     void setBuilder(BaseInternalBuilder * b) { m_builder = typename BaseInternalBuilder::UPtr(b); }
 
-    virtual std::string getTemplateName() const override {
-        return templateName(this);
-    }
-
     static std::string templateName(const LocalIncomingSparseMatrix<VecReal,VecInt>* = NULL) {
         return realName(VecReal().data());
     }

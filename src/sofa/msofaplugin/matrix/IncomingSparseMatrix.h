@@ -296,11 +296,6 @@ public:
     BaseIncomingSparseMatrix()
     : m_projectionMatrix(m_clearCols,m_clearRows) {}
 
-
-    virtual std::string getTemplateName() const override {
-        return templateName(this);
-    }
-
     static std::string templateName(const BaseIncomingSparseMatrix<VecReal,VecInt>* = NULL) {
         return realName(VecReal().data());
     }

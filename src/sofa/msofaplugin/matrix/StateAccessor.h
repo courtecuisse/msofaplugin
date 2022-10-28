@@ -41,11 +41,6 @@ public:
         return obj;
     }
 
-
-    virtual std::string getTemplateName() const override {
-        return templateName(this);
-    }
-
     static std::string templateName(const StateAccessor<DataTypes>* = NULL) {
         return DataTypes::Name();
     }
