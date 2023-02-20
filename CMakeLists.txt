@@ -19,7 +19,7 @@ file(GLOB_RECURSE SCENES_FILES
 )
 
 find_package(SofaFramework REQUIRED)
-find_package(Sofa.SimulationCore REQUIRED)
+find_package(Sofa.Simulation.Core REQUIRED)
 find_package(SofaBaseLinearSolver REQUIRED)
 find_package(Metis REQUIRED)
 include_directories(${METIS_INCLUDE_DIRS})
@@ -33,8 +33,8 @@ set(${PROJECT_NAME}_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/src")
 set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS "-DPLUGIN_DATA_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/\"")
 
 target_link_libraries(${PROJECT_NAME}
-    SofaCore
-    Sofa.SimulationCore
+    Sofa.Core
+    Sofa.Simulation.Core
     SofaBaseLinearSolver
     metis
 )
