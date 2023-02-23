@@ -7,7 +7,7 @@
 #include <sofa/linearalgebra/BaseMatrix.h>
 #include <sofa/core/behavior/MultiMatrixAccessor.h>
 #include <sofa/msofaplugin/matrix/MechanicalVector.h>
-#include <SofaBaseLinearSolver/DefaultMultiMatrixAccessor.h>
+#include <sofa/core/behavior/DefaultMultiMatrixAccessor.h>
 #include <sofa/simulation/MechanicalOperations.h>
 #include <chrono>
 #include <iostream>
@@ -339,7 +339,7 @@ public:
     public:
         typedef std::unique_ptr<BaseInternalBuilder> UPtr;
 
-        virtual void build(component::linearsolver::DefaultMultiMatrixAccessor * accessor) = 0;
+        virtual void build(core::behavior::DefaultMultiMatrixAccessor * accessor) = 0;
 
         virtual double getFactor(const core::MechanicalParams * params) = 0;
     };
@@ -348,7 +348,7 @@ public:
     public:
         KBuilder(core::behavior::BaseForceField* f) : m_ff(f) {}
 
-        void build(component::linearsolver::DefaultMultiMatrixAccessor *accessor) override {
+        void build(core::behavior::DefaultMultiMatrixAccessor *accessor) override {
             core::MechanicalParams mparams;
             mparams.setMFactor(0.0);mparams.setBFactor(0.0);mparams.setKFactor(1.0);
             m_ff->addKToMatrix(&mparams,accessor);
@@ -363,7 +363,7 @@ public:
     public:
         MBuilder(core::behavior::BaseMass * m) : m_ff(m) {}
 
-        void build(component::linearsolver::DefaultMultiMatrixAccessor *accessor) override {
+        void build(core::behavior::DefaultMultiMatrixAccessor *accessor) override {
             core::MechanicalParams mparams;
             mparams.setMFactor(1.0);mparams.setBFactor(0.0);mparams.setKFactor(0.0);
             m_ff->addMToMatrix(&mparams,accessor);
@@ -503,7 +503,7 @@ protected:
 
     std::vector<int> m_mapping;
 
-    component::linearsolver::DefaultMultiMatrixAccessor m_accessor;
+    core::behavior::DefaultMultiMatrixAccessor m_accessor;
     typename BaseInternalBuilder::UPtr m_builder;
 };
 

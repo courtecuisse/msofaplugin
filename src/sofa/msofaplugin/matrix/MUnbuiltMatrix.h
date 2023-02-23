@@ -6,7 +6,7 @@
 #include <sofa/type/Mat.h>
 #include <sofa/type/Vec.h>
 #include <sofa/core/behavior/MultiMatrixAccessor.h>
-#include <SofaBaseLinearSolver/DefaultMultiMatrixAccessor.h>
+#include <sofa/core/behavior/DefaultMultiMatrixAccessor.h>
 #include <sofa/simulation/MechanicalOperations.h>
 #include <sofa/simulation/mechanicalvisitor/MechanicalAddMBKdxVisitor.h>
 #include <sofa/simulation/mechanicalvisitor/MechanicalResetForceVisitor.h>

@@ -5,7 +5,7 @@
 #include <sofa/type/Vec.h>
 #include <sofa/core/behavior/MultiVec.h>
 #include <sofa/core/behavior/MultiMatrixAccessor.h>
-#include <SofaBaseLinearSolver/DefaultMultiMatrixAccessor.h>
+#include <sofa/core/behavior/DefaultMultiMatrixAccessor.h>
 #include <sofa/simulation/MechanicalOperations.h>
 #include <sofa/simulation/AnimateBeginEvent.h>
 #include <sofa/simulation/AnimateEndEvent.h>

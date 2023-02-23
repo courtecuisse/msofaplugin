@@ -22,7 +22,7 @@
 #pragma once
 #include <SofaBaseLinearSolver/config.h>
 
-#include <SofaBaseLinearSolver/MatrixLinearSolver.h>
+#include <sofa/component/linearsolver/iterative/MatrixLinearSolver.h>
 #include <sofa/helper/map.h>
 
 #include <sofa/msofaplugin/solver/MBaseLinearSolver.h>

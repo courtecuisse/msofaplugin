@@ -6,7 +6,7 @@
 #include <sofa/linearalgebra/BaseMatrix.h>
 #include <sofa/core/behavior/MultiMatrixAccessor.h>
 #include <sofa/msofaplugin/matrix/MechanicalVector.h>
-#include <SofaBaseLinearSolver/DefaultMultiMatrixAccessor.h>
+#include <sofa/core/behavior/DefaultMultiMatrixAccessor.h>
 #include <sofa/simulation/MechanicalOperations.h>
 #include <sofa/core/behavior/BaseProjectiveConstraintSet.h>
 #include <chrono>
@@ -102,7 +102,7 @@ public:
         class ProjectMatrixVisitor : public simulation::MechanicalVisitor {
         public:
 
-            ProjectMatrixVisitor(component::linearsolver::DefaultMultiMatrixAccessor * mA)
+            ProjectMatrixVisitor(core::behavior::DefaultMultiMatrixAccessor * mA)
             : simulation::MechanicalVisitor(core::MechanicalParams::defaultInstance())
             , m_accessor(mA) {}
 
@@ -118,12 +118,12 @@ public:
                 return !map->areMatricesMapped();
             }
         private:
-            component::linearsolver::DefaultMultiMatrixAccessor * m_accessor;
+            core::behavior::DefaultMultiMatrixAccessor * m_accessor;
         };
 
         clear();
 
-        component::linearsolver::DefaultMultiMatrixAccessor accessor;
+        core::behavior::DefaultMultiMatrixAccessor accessor;
         accessor.setGlobalMatrix(this);
         accessor.setupMatrices();
 
