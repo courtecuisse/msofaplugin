@@ -4,7 +4,7 @@
 @PACKAGE_INIT@
 
 find_package(SofaFramework REQUIRED)
-find_package(Sofa.SimulationCore REQUIRED)
+find_package(Sofa.Simulation.Core REQUIRED)
 find_package(SofaBaseLinearSolver REQUIRED)
 find_package(Metis REQUIRED)
 
