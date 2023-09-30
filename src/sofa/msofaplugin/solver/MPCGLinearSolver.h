@@ -20,7 +20,6 @@
 * Contact information: contact@sofa-framework.org                             *
 ******************************************************************************/
 #pragma once
-#include <SofaBaseLinearSolver/config.h>
 
 #include <sofa/component/linearsolver/iterative/MatrixLinearSolver.h>
 #include <sofa/helper/map.h>

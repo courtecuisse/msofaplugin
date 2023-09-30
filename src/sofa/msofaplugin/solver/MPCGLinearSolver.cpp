@@ -35,13 +35,13 @@ using namespace sofa::component::linearsolver;
 using namespace sofa::defaulttype;
 using sofa::core::MultiVecDerivId;
 
-template<> SOFA_SOFABASELINEARSOLVER_API
+template<>
 inline void MPCGLinearSolver<component::linearsolver::GraphScatteredMatrix,component::linearsolver::GraphScatteredVector>::cgstep_beta(const core::ExecParams* /*params*/, Vector& p, Vector& r, SReal beta)
 {
     p.eq(r,p,beta); // p = p*beta + r
 }
 
-template<> SOFA_SOFABASELINEARSOLVER_API
+template<>
 inline void MPCGLinearSolver<component::linearsolver::GraphScatteredMatrix,component::linearsolver::GraphScatteredVector>::cgstep_alpha(const core::ExecParams* params, Vector& x, Vector& r, Vector& p, Vector& q, SReal alpha)
 {
 #ifdef SOFA_NO_VMULTIOP // unoptimized version
@@ -76,15 +76,15 @@ int MPCGLinearSolverClass = core::RegisterObject("Linear system solver using the
         .addAlias("ConjugateGradient")
         ;
 
-template class SOFA_SOFABASELINEARSOLVER_API MPCGLinearSolver< GraphScatteredMatrix, GraphScatteredVector >;
-template class SOFA_SOFABASELINEARSOLVER_API MPCGLinearSolver< sofa::linearalgebra::FullMatrix<double>, sofa::linearalgebra::FullVector<double> >;
-template class SOFA_SOFABASELINEARSOLVER_API MPCGLinearSolver< sofa::linearalgebra::SparseMatrix<double>, sofa::linearalgebra::FullVector<double> >;
-template class SOFA_SOFABASELINEARSOLVER_API MPCGLinearSolver< sofa::linearalgebra::CompressedRowSparseMatrix<double>, sofa::linearalgebra::FullVector<double> >;
-template class SOFA_SOFABASELINEARSOLVER_API MPCGLinearSolver< sofa::linearalgebra::CompressedRowSparseMatrix<type::Mat<2,2,double> >, sofa::linearalgebra::FullVector<double> >;
-template class SOFA_SOFABASELINEARSOLVER_API MPCGLinearSolver< sofa::linearalgebra::CompressedRowSparseMatrix<type::Mat<3,3,double> >, sofa::linearalgebra::FullVector<double> >;
-template class SOFA_SOFABASELINEARSOLVER_API MPCGLinearSolver< sofa::linearalgebra::CompressedRowSparseMatrix<type::Mat<4,4,double> >, sofa::linearalgebra::FullVector<double> >;
-template class SOFA_SOFABASELINEARSOLVER_API MPCGLinearSolver< sofa::linearalgebra::CompressedRowSparseMatrix<type::Mat<6,6,double> >, sofa::linearalgebra::FullVector<double> >;
-template class SOFA_SOFABASELINEARSOLVER_API MPCGLinearSolver< sofa::linearalgebra::CompressedRowSparseMatrix<type::Mat<8,8,double> >, sofa::linearalgebra::FullVector<double> >;
+template class MPCGLinearSolver< GraphScatteredMatrix, GraphScatteredVector >;
+template class MPCGLinearSolver< sofa::linearalgebra::FullMatrix<double>, sofa::linearalgebra::FullVector<double> >;
+template class MPCGLinearSolver< sofa::linearalgebra::SparseMatrix<double>, sofa::linearalgebra::FullVector<double> >;
+template class MPCGLinearSolver< sofa::linearalgebra::CompressedRowSparseMatrix<double>, sofa::linearalgebra::FullVector<double> >;
+template class MPCGLinearSolver< sofa::linearalgebra::CompressedRowSparseMatrix<type::Mat<2,2,double> >, sofa::linearalgebra::FullVector<double> >;
+template class MPCGLinearSolver< sofa::linearalgebra::CompressedRowSparseMatrix<type::Mat<3,3,double> >, sofa::linearalgebra::FullVector<double> >;
+template class MPCGLinearSolver< sofa::linearalgebra::CompressedRowSparseMatrix<type::Mat<4,4,double> >, sofa::linearalgebra::FullVector<double> >;
+template class MPCGLinearSolver< sofa::linearalgebra::CompressedRowSparseMatrix<type::Mat<6,6,double> >, sofa::linearalgebra::FullVector<double> >;
+template class MPCGLinearSolver< sofa::linearalgebra::CompressedRowSparseMatrix<type::Mat<8,8,double> >, sofa::linearalgebra::FullVector<double> >;
 
 
 } // namespace sofa::component::linearsolver

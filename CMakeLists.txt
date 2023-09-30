@@ -18,9 +18,9 @@ file(GLOB_RECURSE SCENES_FILES
     "scenes/*.xml"
 )
 
-find_package(SofaFramework REQUIRED)
+find_package(Sofa.Framework REQUIRED)
 find_package(Sofa.Simulation.Core REQUIRED)
-find_package(SofaBaseLinearSolver REQUIRED)
+find_package(Sofa.Component.LinearSolver.Iterative REQUIRED)
 find_package(Metis REQUIRED)
 include_directories(${METIS_INCLUDE_DIRS})
 
@@ -35,7 +35,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS "-DPLUGIN_DATA_DI
 target_link_libraries(${PROJECT_NAME}
     Sofa.Core
     Sofa.Simulation.Core
-    SofaBaseLinearSolver
+    Sofa.Component.LinearSolver.Iterative
     metis
 )
 
