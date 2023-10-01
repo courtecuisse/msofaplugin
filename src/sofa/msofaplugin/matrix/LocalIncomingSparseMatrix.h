@@ -184,10 +184,10 @@ public:
         countvec.resize(m_rowSize); // reset to zero
 
         for (unsigned j=0;j<m_colSize;j++) {
-            for (unsigned i=tmp_tran_colptr[j];i<tmp_tran_colptr[j+1];i++) {
+            for (int i=tmp_tran_colptr[j];i<tmp_tran_colptr[j+1];i++) {
                 unsigned row = tmp_tran_rowind[i];
 
-                unsigned write_id = tmp_colptr[row] + countvec[row];
+                int write_id = tmp_colptr[row] + countvec[row];
                 if (write_id>=tmp_colptr[row+1]) continue; //skip clear rows
 
                 tmp_rowind[write_id] = j; // we are building the column j
@@ -223,7 +223,7 @@ public:
         //by default all the values will be sumed to the last value in the m_sparseValuesVec, we initialize the vector with the last index of the vector (size+1)
         m_mapping.resize(m_sparseValuesVec.size(),m_rowind.size());
         for (unsigned i=0;i<m_rowind.size();i++) {
-            for (unsigned j=valptr[i];j<valptr[i+1];j++) {
+            for (int j=valptr[i];j<valptr[i+1];j++) {
                 m_mapping[sortid[j]] = i;
             }
         }

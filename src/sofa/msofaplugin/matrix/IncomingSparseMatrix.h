@@ -202,7 +202,7 @@ private :
 
     int m_rows;
     int m_cols;
-    int m_nnz;
+    unsigned m_nnz;
     VecInt m_colptr;
     VecInt m_rowind;
     VecReal m_values;
