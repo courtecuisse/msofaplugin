@@ -21,7 +21,7 @@ file(GLOB_RECURSE SCENES_FILES
 find_package(Sofa.Framework REQUIRED)
 find_package(Sofa.Simulation.Core REQUIRED)
 find_package(Sofa.Component.LinearSolver.Iterative REQUIRED)
-find_package(Metis REQUIRED)
+find_package(metis REQUIRED)
 include_directories(${METIS_INCLUDE_DIRS})
 
 set_source_files_properties(${IGNORED_FILES} PROPERTIES HEADER_FILE_ONLY TRUE)
