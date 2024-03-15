@@ -30,7 +30,7 @@ public:
     typedef TVecReal VecReal;
     typedef TVecInt VecInt;
 
-    SOFA_ABSTRACT_CLASS(SOFA_TEMPLATE2(CompressableMatrix,VecReal,VecInt), BaseSystemMatrix);
+    SOFA_CLASS(SOFA_TEMPLATE2(CompressableMatrix,VecReal,VecInt), BaseSystemMatrix);
 
     virtual void preBuildMatrix() override {
         //Visitor to retreive the list of mstates
